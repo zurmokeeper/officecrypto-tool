@@ -3,7 +3,7 @@
 
 const CFB = require('cfb');
 const common = require('./src/util/common');
-const ecma376Standard = require('./crypto/ecma376_standard');
+const ecma376Standard = require('./src/crypto/ecma376_standard');
 
 
 /**
