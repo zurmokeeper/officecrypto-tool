@@ -4,8 +4,11 @@
   "private": false,
   "author": "zurmokeeper",
   "main": "app.js",
-  "scripts": {
-    "start": "node index.js"
+  "scripts": { 
+    "start": "node index.js",
+    "prepare": "husky install",
+    "lint-staged": "pnpm dlx lint-staged",
+    "lint": "eslint --ext .js"
   },
   "dependencies": {
     "cfb": "^1.2.2",
@@ -19,6 +22,6 @@
     "lint-staged": "^13.2.0"
   },
   "lint-staged": {
-    "src/**/*.js": "npm run lint"
+    "src/**/*.js": "pnpm run lint"
   }
 }
