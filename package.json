@@ -1,0 +1,24 @@
+{
+  "name": "officecrypto-tool",
+  "version": "1.0.0",
+  "private": false,
+  "author": "zurmokeeper",
+  "main": "app.js",
+  "scripts": {
+    "start": "node index.js"
+  },
+  "dependencies": {
+    "cfb": "^1.2.2",
+    "xml2js": "^0.6.0"
+  },
+  "devDependencies": {
+    "eslint": "^7.32.0",
+    "eslint-config-google": "^0.14.0",
+    "husky": "^8.0.3",
+    "jest": "^29.4.1",
+    "lint-staged": "^13.2.0"
+  },
+  "lint-staged": {
+    "src/**/*.js": "npm run lint"
+  }
+}
