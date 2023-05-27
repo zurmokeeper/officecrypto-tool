@@ -4,7 +4,7 @@
   "private": false,
   "author": "zurmokeeper",
   "main": "app.js",
-  "scripts": { 
+  "scripts": {
     "start": "node index.js",
     "prepare": "husky install",
     "lint-staged": "pnpm dlx lint-staged",
@@ -15,6 +15,7 @@
     "typeset2": "jest test/scheduling/typeset.test.js"
   },
   "dependencies": {
+    "@jest/globals": "^29.5.0",
     "cfb": "^1.2.2",
     "xml2js": "^0.6.0"
   },

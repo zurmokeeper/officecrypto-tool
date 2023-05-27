@@ -17,13 +17,79 @@ const xml2js = require('xml2js');
 //     </keyEncryptors>
 // </encryption>`
 /**
- * @desc @TODO: 补好结构
+ * @desc
  * @param {string} xml
  */
 exports.getAgileEncInfo = async function getAgileEncInfo(xml) {
   const parser = new xml2js.Parser({trim: true, explicitArray: false, mergeAttrs: true});
   const result = await parser.parseStringPromise(xml);
-  console.dir(result);
-  console.log(JSON.stringify(result));
+  // console.dir(result);
   return result.encryption;
 };
+
+exports.buildAgileEncInfoXml = function buildAgileEncInfoXml(encryptionInfo) {
+  const builder = new xml2js.Builder();
+  const xml = builder.buildObject({
+    encryption: {
+      $: {
+        'xmlns': 'http://schemas.microsoft.com/office/2006/encryption',
+        'xmlns:p': 'http://schemas.microsoft.com/office/2006/keyEncryptor/password',
+        'xmlns:c': 'http://schemas.microsoft.com/office/2006/keyEncryptor/certificate',
+      },
+      keyData: {
+        $: {
+          saltSize: encryptionInfo.package.saltValue.length,
+          blockSize: encryptionInfo.package.blockSize,
+          keyBits: encryptionInfo.package.keyBits,
+          hashSize: encryptionInfo.package.hashSize,
+          cipherAlgorithm: encryptionInfo.package.cipherAlgorithm,
+          cipherChaining: encryptionInfo.package.cipherChaining,
+          hashAlgorithm: encryptionInfo.package.hashAlgorithm,
+          saltValue: encryptionInfo.package.saltValue.toString('base64'),
+        },
+      },
+      dataIntegrity: {
+        $: {
+          encryptedHmacKey: encryptionInfo.dataIntegrity.encryptedHmacKey.toString('base64'),
+          encryptedHmacValue: encryptionInfo.dataIntegrity.encryptedHmacValue.toString('base64'),
+        },
+      },
+      keyEncryptors: {
+        keyEncryptor: {
+          '$': {
+            uri: 'http://schemas.microsoft.com/office/2006/keyEncryptor/password',
+          },
+          'p:encryptedKey': {
+            $: {
+              spinCount: encryptionInfo.key.spinCount,
+              saltSize: encryptionInfo.key.saltValue.length,
+              blockSize: encryptionInfo.key.blockSize,
+              keyBits: encryptionInfo.key.keyBits,
+              hashSize: encryptionInfo.key.hashSize,
+              cipherAlgorithm: encryptionInfo.key.cipherAlgorithm,
+              cipherChaining: encryptionInfo.key.cipherChaining,
+              hashAlgorithm: encryptionInfo.key.hashAlgorithm,
+              saltValue: encryptionInfo.key.saltValue.toString('base64'),
+              encryptedVerifierHashInput: encryptionInfo.key.encryptedVerifierHashInput.toString('base64'),
+              encryptedVerifierHashValue: encryptionInfo.key.encryptedVerifierHashValue.toString('base64'),
+              encryptedKeyValue: encryptionInfo.key.encryptedKeyValue.toString('base64'),
+            },
+          },
+        },
+      },
+    },
+  });
+  return xml;
+};
+
+
+// exports.getAgileEncInfo = function getAgileEncInfo(xml) {
+//   const parser = new xml2js.Parser({trim: true, explicitArray: false, mergeAttrs: true});
+//   return parser.parseStringPromise(xml).then((result)=>{
+//     console.dir(result);
+//     console.log(JSON.stringify(result));
+//     return result.encryption;
+//   }).catch((error)=>{
+//     console.error(error);
+//   });
+// };

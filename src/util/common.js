@@ -1,8 +1,6 @@
 /* eslint-disable valid-jsdoc */
 'use strict';
 
-// [
-//     2,
 //     {
 //       t: 'Std',
 //       h: {
@@ -19,8 +17,7 @@
 //         VerifierHash: <Buffer d8 1f 25 99 84 80 20 16 40 88 23 83 0d f9 71 4e 3e 30 71 03 2c f4 86 8b 45 2c
 //   10 f7>
 //       }
-//     }
-//   ]
+
 /**
  * @desc
  */
@@ -85,7 +82,7 @@ function parseEncryptionHeader(blob, length) {
 }
 
 /**
- * @desc [MS-OFFCRYPTO] 2.3.3 Encryption Verifier
+ * @desc
  */
 function parseEncryptionVerifier(blob, length) {
   const o = {};
@@ -109,4 +106,14 @@ function parseEncryptionVerifier(blob, length) {
  */
 function parseEncInfoAgile(blob, length) {
   return {type: 'agile'};
+}
+
+/**
+ *
+ * @param {*} blob
+ * @param {*} length
+ * @returns
+ */
+function parseEncInfoExtensible(blob, length) {
+  return {type: 'extensible'};
 }

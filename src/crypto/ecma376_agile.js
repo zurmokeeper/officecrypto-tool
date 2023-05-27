@@ -1,6 +1,7 @@
 'use strict';
 
 const crypto = require('crypto');
+const cfb = require('cfb');
 const xmlUtil = require('../util/xml');
 
 
@@ -318,6 +319,215 @@ const Encryptor = {
     let output = cipher.update(input);
     output = Buffer.concat([output, cipher.final()]);
     return output;
+  },
+
+  /**
+   * Encrypt the data with the password.
+   * @param {Buffer} data - The data to encrypt
+   * @param {string} password - The password
+   * @return {Buffer} The encrypted data
+   */
+  encrypt(data, password) {
+    // Generate a random key to use to encrypt the document. Excel uses 32 bytes. We'll use the password to encrypt this key.
+    // N.B. The number of bits needs to correspond to an algorithm available in crypto (e.g. aes-256-cbc).
+    const packageKey = crypto.randomBytes(32);
+
+    // Create the encryption info. We'll use this for all of the encryption operations and for building the encryption info XML entry
+    const encryptionInfo = {
+      package: { // Info on the encryption of the package.
+        cipherAlgorithm: 'AES', // Cipher algorithm to use. Excel uses AES.
+        cipherChaining: 'ChainingModeCBC', // Cipher chaining mode to use. Excel uses CBC.
+        saltValue: crypto.randomBytes(16), // Random value to use as encryption salt. Excel uses 16 bytes.
+        hashAlgorithm: 'SHA512', // Hash algorithm to use. Excel uses SHA512.
+        hashSize: 64, // The size of the hash in bytes. SHA512 results in 64-byte hashes
+        blockSize: 16, // The number of bytes used to encrypt one block of data. It MUST be at least 2, no greater than 4096, and a multiple of 2. Excel uses 16
+        keyBits: packageKey.length * 8, // The number of bits in the package key.
+      },
+      key: { // Info on the encryption of the package key.
+        cipherAlgorithm: 'AES', // Cipher algorithm to use. Excel uses AES.
+        cipherChaining: 'ChainingModeCBC', // Cipher chaining mode to use. Excel uses CBC.
+        saltValue: crypto.randomBytes(16), // Random value to use as encryption salt. Excel uses 16 bytes.
+        hashAlgorithm: 'SHA512', // Hash algorithm to use. Excel uses SHA512.
+        hashSize: 64, // The size of the hash in bytes. SHA512 results in 64-byte hashes
+        blockSize: 16, // The number of bytes used to encrypt one block of data. It MUST be at least 2, no greater than 4096, and a multiple of 2. Excel uses 16
+        spinCount: 100000, // The number of times to iterate on a hash of a password. It MUST NOT be greater than 10,000,000. Excel uses 100,000.
+        keyBits: 256, // The length of the key to generate from the password. Must be a multiple of 8. Excel uses 256.
+      },
+    };
+
+    /* Package Encryption */
+
+    // Encrypt package using the package key.
+    const encryptedPackage = this.cryptPackage(
+        true,
+        encryptionInfo.package.cipherAlgorithm,
+        encryptionInfo.package.cipherChaining,
+        encryptionInfo.package.hashAlgorithm,
+        encryptionInfo.package.blockSize,
+        encryptionInfo.package.saltValue,
+        packageKey,
+        data,
+    );
+
+    /* Data Integrity */
+
+    // Create the data integrity fields used by clients for integrity checks.
+    // First generate a random array of bytes to use in HMAC. The docs say to use the same length as the key salt, but Excel seems to use 64.
+    const hmacKey = crypto.randomBytes(64);
+
+    // Then create an initialization vector using the package encryption info and the appropriate block key.
+    const hmacKeyIV = this.createIV(
+        encryptionInfo.package.hashAlgorithm,
+        encryptionInfo.package.saltValue,
+        encryptionInfo.package.blockSize,
+        BLOCK_KEYS.dataIntegrity.hmacKey,
+    );
+
+    // Use the package key and the IV to encrypt the HMAC key
+    const encryptedHmacKey = this.crypt(
+        true,
+        encryptionInfo.package.cipherAlgorithm,
+        encryptionInfo.package.cipherChaining,
+        packageKey,
+        hmacKeyIV,
+        hmacKey);
+
+    // Now create the HMAC
+    const hmacValue = this.hmac(encryptionInfo.package.hashAlgorithm, hmacKey, encryptedPackage);
+
+    // Next generate an initialization vector for encrypting the resulting HMAC value.
+    const hmacValueIV = this.createIV(
+        encryptionInfo.package.hashAlgorithm,
+        encryptionInfo.package.saltValue,
+        encryptionInfo.package.blockSize,
+        BLOCK_KEYS.dataIntegrity.hmacValue,
+    );
+
+    // Now encrypt the value
+    const encryptedHmacValue = this.crypt(
+        true,
+        encryptionInfo.package.cipherAlgorithm,
+        encryptionInfo.package.cipherChaining,
+        packageKey,
+        hmacValueIV,
+        hmacValue,
+    );
+
+    // Put the encrypted key and value on the encryption info
+    encryptionInfo.dataIntegrity = {
+      encryptedHmacKey,
+      encryptedHmacValue,
+    };
+
+    /* Key Encryption */
+
+    // Convert the password to an encryption key
+    const key = this.convertPasswordToKey(
+        password,
+        encryptionInfo.key.hashAlgorithm,
+        encryptionInfo.key.saltValue,
+        encryptionInfo.key.spinCount,
+        encryptionInfo.key.keyBits,
+        BLOCK_KEYS.key,
+    );
+
+    // Encrypt the package key with the
+    encryptionInfo.key.encryptedKeyValue = this.crypt(
+        true,
+        encryptionInfo.key.cipherAlgorithm,
+        encryptionInfo.key.cipherChaining,
+        key,
+        encryptionInfo.key.saltValue,
+        packageKey);
+
+    /* Verifier hash */
+
+    // Create a random byte array for hashing
+    const verifierHashInput = crypto.randomBytes(16);
+
+    // Create an encryption key from the password for the input
+    const verifierHashInputKey = this.convertPasswordToKey(
+        password,
+        encryptionInfo.key.hashAlgorithm,
+        encryptionInfo.key.saltValue,
+        encryptionInfo.key.spinCount,
+        encryptionInfo.key.keyBits,
+        BLOCK_KEYS.verifierHash.input,
+    );
+
+    // Use the key to encrypt the verifier input
+    encryptionInfo.key.encryptedVerifierHashInput = this.crypt(
+        true,
+        encryptionInfo.key.cipherAlgorithm,
+        encryptionInfo.key.cipherChaining,
+        verifierHashInputKey,
+        encryptionInfo.key.saltValue,
+        verifierHashInput,
+    );
+
+    // Create a hash of the input
+    const verifierHashValue = this.hash(encryptionInfo.key.hashAlgorithm, verifierHashInput);
+
+    // Create an encryption key from the password for the hash
+    const verifierHashValueKey = this.convertPasswordToKey(
+        password,
+        encryptionInfo.key.hashAlgorithm,
+        encryptionInfo.key.saltValue,
+        encryptionInfo.key.spinCount,
+        encryptionInfo.key.keyBits,
+        BLOCK_KEYS.verifierHash.value,
+    );
+
+    // Use the key to encrypt the hash value
+    encryptionInfo.key.encryptedVerifierHashValue = this.crypt(
+        true,
+        encryptionInfo.key.cipherAlgorithm,
+        encryptionInfo.key.cipherChaining,
+        verifierHashValueKey,
+        encryptionInfo.key.saltValue,
+        verifierHashValue,
+    );
+
+    const encryptionInfoXml = xmlUtil.buildAgileEncInfoXml(encryptionInfo);
+
+    // Convert to a buffer and prefix with the appropriate bytes
+    const encryptionInfoBuffer = Buffer.concat([ENCRYPTION_INFO_PREFIX, Buffer.from(encryptionInfoXml, 'utf8')]);
+
+    // Create a new CFB
+    let output = cfb.utils.cfb_new();
+
+    // Add the encryption info and encrypted package
+    cfb.utils.cfb_add(output, 'EncryptionInfo', encryptionInfoBuffer);
+    cfb.utils.cfb_add(output, 'EncryptedPackage', encryptedPackage);
+
+    // Delete the SheetJS entry that is added at initialization
+    cfb.utils.cfb_del(output, '\u0001Sh33tJ5');
+
+    // Write to a buffer and return
+    output = cfb.write(output);
+
+    // The cfb library writes to a Uint8array in the browser. Convert to a Buffer.
+    if (!Buffer.isBuffer(output)) output = Buffer.from(output);
+
+    return output;
+  },
+
+  /**
+   * Calculate an HMAC of the concatenated buffers with the given algorithm and key
+   * @param {string} algorithm - The algorithm.
+   * @param {string} key - The key
+   * @param {Array.<Buffer>} buffers - The buffer to concat and HMAC
+   * @return {Buffer} The HMAC
+   * @private
+   */
+  hmac(algorithm, key, ...buffers) {
+    algorithm = algorithm.toLowerCase();
+    const hashes = crypto.getHashes();
+    if (hashes.indexOf(algorithm) < 0) throw new Error(`HMAC algorithm '${algorithm}' not supported!`);
+
+    const hmac = crypto.createHmac(algorithm, key);
+    hmac.update(Buffer.concat(buffers));
+    return hmac.digest();
   },
 };
 module.exports = Encryptor;
