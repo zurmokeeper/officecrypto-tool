@@ -1,6 +1,7 @@
 {
   "name": "officecrypto-tool",
   "version": "0.0.1",
+  "description": "officeCrypto is a library for node.js that can be used to decrypt and encrypt excel files.",
   "private": false,
   "author": "zurmokeeper",
   "main": "index.js",
