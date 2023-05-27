@@ -27,13 +27,13 @@ Now it supports encryption and decryption of` MS office and WPS xlsx suffix file
 ## Install
 
 ```
-npm/yarn/pnpm install officeCrypto
+npm/yarn/pnpm install officecrypto-tool
 ```
 
 ## Examples
 
 ```
-const officeCrypto = require('officeCrypto');
+const officeCrypto = require('officecrypto-tool');
 const fs = require('fs').promises;
 
 //decrypt a file with a password
