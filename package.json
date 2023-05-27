@@ -1,25 +1,23 @@
 {
   "name": "officecrypto-tool",
-  "version": "1.0.0",
+  "version": "0.0.1",
   "private": false,
   "author": "zurmokeeper",
-  "main": "app.js",
+  "main": "index.js",
   "scripts": {
     "start": "node index.js",
     "prepare": "husky install",
     "lint-staged": "pnpm dlx lint-staged",
     "lint": "eslint --ext .js",
     "test": "jest",
-    "testInit": "jest --init",
-    "coverage": "jest --coverage",
-    "typeset2": "jest test/scheduling/typeset.test.js"
+    "coverage": "jest --coverage"
   },
   "dependencies": {
-    "@jest/globals": "^29.5.0",
     "cfb": "^1.2.2",
     "xml2js": "^0.6.0"
   },
   "devDependencies": {
+    "@jest/globals": "^29.5.0",
     "eslint": "^7.32.0",
     "eslint-config-google": "^0.14.0",
     "husky": "^8.0.3",

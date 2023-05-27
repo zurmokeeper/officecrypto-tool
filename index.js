@@ -67,6 +67,8 @@ function encrypt(input, options) {
   if (!Buffer.isBuffer(input)) throw new Error('The input must be a buffer');
   if (!options || !options.password) throw new Error('options.password is required');
 
+  const maxFieldLength = 255;
+  if (options.password.length > maxFieldLength) throw new Error(`The maximum password length is ${maxFieldLength}`);
   const output = ecma376Agile.encrypt(input, options.password);
   return output;
 }

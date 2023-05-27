@@ -23,7 +23,6 @@ const xml2js = require('xml2js');
 exports.getAgileEncInfo = async function getAgileEncInfo(xml) {
   const parser = new xml2js.Parser({trim: true, explicitArray: false, mergeAttrs: true});
   const result = await parser.parseStringPromise(xml);
-  // console.dir(result);
   return result.encryption;
 };
 
@@ -82,14 +81,3 @@ exports.buildAgileEncInfoXml = function buildAgileEncInfoXml(encryptionInfo) {
   return xml;
 };
 
-
-// exports.getAgileEncInfo = function getAgileEncInfo(xml) {
-//   const parser = new xml2js.Parser({trim: true, explicitArray: false, mergeAttrs: true});
-//   return parser.parseStringPromise(xml).then((result)=>{
-//     console.dir(result);
-//     console.log(JSON.stringify(result));
-//     return result.encryption;
-//   }).catch((error)=>{
-//     console.error(error);
-//   });
-// };
