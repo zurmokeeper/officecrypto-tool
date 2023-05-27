@@ -8,7 +8,11 @@
     "start": "node index.js",
     "prepare": "husky install",
     "lint-staged": "pnpm dlx lint-staged",
-    "lint": "eslint --ext .js"
+    "lint": "eslint --ext .js",
+    "test": "jest",
+    "testInit": "jest --init",
+    "coverage": "jest --coverage",
+    "typeset2": "jest test/scheduling/typeset.test.js"
   },
   "dependencies": {
     "cfb": "^1.2.2",

@@ -1,7 +1,6 @@
 'use strict';
 
 const crypto = require('crypto');
-const cfb = require('cfb');
 const xmlUtil = require('../util/xml');
 
 
@@ -81,15 +80,12 @@ const Encryptor = {
    * @return {Promise.<Buffer>} The decrypted data
    */
   async decrypt(data, password) {
-    // Parse the CFB input and pull out the encryption info and encrypted package entries.
-    const parsed = cfb.parse(data);
-    const {FileIndex} = parsed;
-    let encryptionInfoBuffer = FileIndex.find((item) => item.name === 'EncryptionInfo').content;
-    let encryptedPackageBuffer = FileIndex.find((item) => item.name === 'EncryptedPackage').content;
+    let {encryptionInfoBuffer, encryptedPackageBuffer} = data;
 
     // In the browser the CFB content is an array. Convert to a Buffer.
     if (!Buffer.isBuffer(encryptionInfoBuffer)) encryptionInfoBuffer = Buffer.from(encryptionInfoBuffer);
     if (!Buffer.isBuffer(encryptedPackageBuffer)) encryptedPackageBuffer = Buffer.from(encryptedPackageBuffer);
+
 
     // Parse the encryption info XML into an object
     const encryptionInfo = await this.parseEncryptionInfo(encryptionInfoBuffer);
@@ -141,7 +137,6 @@ const Encryptor = {
     const {keyData, keyEncryptors} = doc;
     const {cipherAlgorithm, cipherChaining, saltValue, hashAlgorithm, blockSize} = keyData;
     const encryptedKeyNode = keyEncryptors.keyEncryptor['p:encryptedKey'];
-    // console.log('doc--->', doc);
 
     return {
       package: {

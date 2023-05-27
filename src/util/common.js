@@ -100,3 +100,13 @@ function parseEncryptionVerifier(blob, length) {
   blob.l = tgt;
   return o;
 }
+
+/**
+ *
+ * @param {*} blob
+ * @param {*} length
+ * @returns
+ */
+function parseEncInfoAgile(blob, length) {
+  return {type: 'agile'};
+}

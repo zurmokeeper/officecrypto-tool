@@ -3,7 +3,7 @@
 
 const crypto = require('crypto');
 
-exports.makeKeyFromPassword = function makeKeyFromPassword(password, algId, algIdHash, providerType, keySize, saltSize, salt) {
+exports.convertPasswordToKey = function convertPasswordToKey(password, algId, algIdHash, providerType, keySize, saltSize, salt) {
   const ITER_COUNT = 50000;
   const cbRequiredKeyLength = keySize / 8;
 
@@ -41,7 +41,7 @@ function xorBytes(a, b) {
   return Buffer.from(result);
 }
 
-function verifyKey(key, encryptedVerifier, encryptedVerifierHash) {
+exports.verifyKey = function verifyKey(key, encryptedVerifier, encryptedVerifierHash) {
   const aes = crypto.createDecipheriv('aes-128-ecb', key, Buffer.alloc(0));
   aes.setAutoPadding(false);
   let verifier = aes.update(encryptedVerifier);
@@ -52,7 +52,7 @@ function verifyKey(key, encryptedVerifier, encryptedVerifierHash) {
   let verifierHash = decryptor.update(encryptedVerifierHash);
   verifierHash = Buffer.concat([verifierHash, decryptor.final()]).slice(0, 20);
   return expectedHash.equals(verifierHash);
-}
+};
 
 exports.decrypt = function decrypt(key, input) {
   const outputChunks = [];
