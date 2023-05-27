@@ -1,7 +1,7 @@
 # officecrypto-tool
 
 
-officeCrypto is a library for node.js that can be used to decrypt and encrypt excel files..
+officeCrypto is a library for js that can be used to decrypt and encrypt office(excel/ppt/word) files..
 
 ## Special Notes
 The implementation of this library refers to [xlsx](https://www.npmjs.com/package/xlsx) and [xlsx-populate](https://www.npmjs.com/package/xlsx-populate), especially `xlsx-populate`, part of the source code reference and directly copied over.
