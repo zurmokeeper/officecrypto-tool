@@ -2,6 +2,15 @@
   "name": "officecrypto-tool",
   "version": "0.0.1",
   "description": "officeCrypto is a library for node.js that can be used to decrypt and encrypt excel files.",
+  "keywords": [
+		"encrypt",
+		"decrypt" ,
+		"xls",
+    "xlsx",
+    "cfb",
+    "office",
+    "ole"
+	],
   "private": false,
   "author": "zurmokeeper",
   "main": "index.js",
@@ -13,6 +22,7 @@
     "test": "jest",
     "coverage": "jest --coverage"
   },
+  "types": "index.d.ts",
   "dependencies": {
     "cfb": "^1.2.2",
     "xml2js": "^0.6.0"
@@ -27,5 +37,9 @@
   },
   "lint-staged": {
     "src/**/*.js": "pnpm run lint"
-  }
+  },
+  "repository": {
+		"type": "git",
+		"url": "git@github.com:zurmokeeper/officecrypto-tool.git"
+	}
 }
