@@ -1,0 +1,39 @@
+name: Tests
+on:
+  push:
+    branches: [ main ]
+  pull_request:
+    branches: [ '**' ]
+
+jobs:
+  test:
+    runs-on: ${{ matrix.os }}
+
+    name: Node v${{ matrix.node-version }} on ${{ matrix.os }}
+    strategy:
+      matrix:
+        node-version: [10.x, 12.x, 14.x, 16.x, 18.x, 20.x]
+        os: [ubuntu-latest, windows-latest, macos-latest]
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v2
+
+      - name: Setup Node.js ${{ matrix.node-version }}
+        uses: actions/setup-node@v2
+        with:
+          node-version: ${{ matrix.node-version }}
+
+      - name: Install pnpm
+        run: |
+          if [[ "${{ matrix.node-version }}" == "10.x" || "${{ matrix.node-version }}" == "12.x" || "${{ matrix.node-version }}" == "14.x" ]]; then
+            npm i -g pnpm@v6.35.1
+          else
+            npm i -g pnpm
+          fi
+
+      - name: Install Dependencies
+        run: pnpm install
+
+      - name: Run Tests
+        run: pnpm run test
