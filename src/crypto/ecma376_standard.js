@@ -2,8 +2,9 @@
 'use strict';
 
 const crypto = require('crypto');
+const cfb = require('cfb');
 
-exports.convertPasswordToKey = function convertPasswordToKey(password, algId, algIdHash, providerType, keySize, saltSize, salt) {
+const convertPasswordToKey = exports.convertPasswordToKey = function convertPasswordToKey(password, algId, algIdHash, providerType, keySize, saltSize, salt) {
   const ITER_COUNT = 50000;
   const cbRequiredKeyLength = keySize / 8;
 
@@ -42,6 +43,10 @@ function xorBytes(a, b) {
 }
 
 exports.verifyKey = function verifyKey(key, encryptedVerifier, encryptedVerifierHash) {
+  // In the browser environment. Convert to a Buffer.
+  if (!Buffer.isBuffer(encryptedVerifier)) encryptedVerifier = Buffer.from(encryptedVerifier);
+  if (!Buffer.isBuffer(encryptedVerifierHash)) encryptedVerifierHash = Buffer.from(encryptedVerifierHash);
+
   const aes = crypto.createDecipheriv('aes-128-ecb', key, Buffer.alloc(0));
   aes.setAutoPadding(false);
   let verifier = aes.update(encryptedVerifier);
@@ -58,6 +63,9 @@ exports.decrypt = function decrypt(key, input) {
   const outputChunks = [];
   const offset = 8;
   const blockSize = 16;
+
+  // In the browser environment. Convert to a Buffer.
+  if (!Buffer.isBuffer(input)) input = Buffer.from(input);
 
   // The package is encoded in chunks. Encrypt/decrypt each and concat.
   let start = 0; let end = 0;
@@ -88,7 +96,7 @@ exports.decrypt = function decrypt(key, input) {
   return output;
 };
 
-exports.encrypt = function encrypt(key, input) {
+const encrypt = exports.encrypt = function encrypt(key, input) {
   const outputChunks = [];
   const offset = 0;
   const PACKAGE_OFFSET = 8;
@@ -115,7 +123,6 @@ exports.encrypt = function encrypt(key, input) {
     outputChunks.push(outputChunk);
   }
 
-
   // Concat all of the output chunks.
   let output = Buffer.concat(outputChunks);
 
@@ -130,3 +137,91 @@ function createUInt32LEBuffer(value, bufferSize = 4) {
   buffer.writeUInt32LE(value, 0);
   return buffer;
 }
+
+function genVerifier(key) {
+  const verifierHashInput = crypto.randomBytes(16);
+  const aes = crypto.createCipheriv('aes-128-ecb', key, Buffer.alloc(0));
+  aes.setAutoPadding(false);
+  const verifierHashInputValue = Buffer.concat([aes.update(verifierHashInput), aes.final()]);
+
+  let verifierHashInputKey = crypto.createHash('sha1').update(verifierHashInput).digest();
+  const blockSize = 16;
+  const remainder = verifierHashInputKey.length % blockSize;
+  if (remainder) verifierHashInputKey = Buffer.concat([verifierHashInputKey, Buffer.alloc(blockSize - remainder)]);
+
+  const aes2 = crypto.createCipheriv('aes-128-ecb', key, Buffer.alloc(0));
+  aes2.setAutoPadding(false);
+  const verifierHashInputKeyValue = Buffer.concat([aes2.update(verifierHashInputKey), aes2.final()]);
+  return {encryptedVerifier: verifierHashInputValue, encryptedVerifierHash: verifierHashInputKeyValue};
+}
+
+function buildEncryptionInfo(key, keyDataSaltValue) {
+  const blob = Buffer.alloc(224);
+  cfb.utils.prep_blob(blob, 0);
+
+  blob.write_shift(2, 0x0004);
+  blob.write_shift(2, 0x0002);
+  blob.write_shift(4, 0x24); // EncryptionHeaderFlags
+  blob.write_shift(4, 0x8c); // 140  EncryptionHeaderSize
+  blob.write_shift(4, 0x24); // Flags
+  blob.write_shift(4, 0x00); // SizeExtra
+  blob.write_shift(4, 0x660E); // AlgID
+  blob.write_shift(4, 0x8004); // AlgIDHash
+  blob.write_shift(4, 0x80); // KeySize  128
+  blob.write_shift(4, 0x18); // ProviderType;
+  blob.write_shift(4, 0x00); // Reserved1
+  blob.write_shift(4, 0x00); // Reserved2
+
+  // The entire EncryptionHeaderSize is 140 bytes, the above is already 32 bytes, leaving 108 bytes, since it is utf16le
+  // so providerName = 108/2 = 54
+
+  const providerName = 'Microsoft Enhanced RSA and AES Cryptographic Provider (Prototype)';
+  blob.write_shift(54, providerName, 'utf16le');
+
+  blob.write_shift(4, 0x10); // SaltSize
+
+  const {encryptedVerifier, encryptedVerifierHash} = genVerifier(key);
+
+  blob.write_shift(16, keyDataSaltValue.toString('hex'), 'hex'); // Salt
+  blob.write_shift(16, encryptedVerifier.toString('hex'), 'hex'); // EncryptedVerifier
+  blob.write_shift(4, 0x14); // VerifierHashSize
+  blob.write_shift(32, encryptedVerifierHash.toString('hex'), 'hex'); // EncryptedVerifierHash
+
+  return blob;
+}
+
+function buildEncryptionPackage(key, input) {
+  const output = encrypt(key, input);
+  return output;
+}
+
+exports.encryptStandard = function encryptStandard(input, password) {
+  // Create a new CFB
+  let output = cfb.utils.cfb_new();
+
+  const KeySize = 128;
+  const AlgID = 0x660E;
+  const AlgIDHash = 0x8004;
+  const ProviderType = 0x18;
+  const saltSize = 16;
+  const keyDataSaltValue = crypto.randomBytes(16);
+  const key = convertPasswordToKey(password, AlgID, AlgIDHash, ProviderType, KeySize, saltSize, keyDataSaltValue);
+
+  const encryptionInfoBuffer = buildEncryptionInfo(key, keyDataSaltValue);
+  const encryptedPackage = buildEncryptionPackage(key, input);
+
+  // Add the encryption info and encrypted package
+  cfb.utils.cfb_add(output, 'EncryptionInfo', encryptionInfoBuffer);
+  cfb.utils.cfb_add(output, 'EncryptedPackage', encryptedPackage);
+
+  // Delete the SheetJS entry that is added at initialization
+  cfb.utils.cfb_del(output, '\u0001Sh33tJ5');
+
+  // Write to a buffer and return
+  output = cfb.write(output);
+
+  // The cfb library writes to a Uint8array in the browser. Convert to a Buffer.
+  if (!Buffer.isBuffer(output)) output = Buffer.from(output);
+
+  return output;
+};

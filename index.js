@@ -14,13 +14,20 @@ const ecma376Agile = require('./src/crypto/ecma376_agile');
  * @returns
  */
 async function decrypt(input, options) {
-  if (!Buffer.isBuffer(input)) throw new Error('The input must be a buffer');
+  if (!Buffer.isBuffer(input)) {
+    // This is an ArrayBuffer in the browser. Convert to a Buffer.
+    if (ArrayBuffer.isView(input)) {
+      input = Buffer.from(input);
+    } else {
+      throw new Error('The input must be a buffer');
+    }
+  }
   if (!options || !options.password) throw new Error('options.password is required');
 
   const cfb = CFB.read(input, {type: 'buffer'});
   const encryptionInfo = CFB.find(cfb, '/EncryptionInfo');
 
-  if (encryptionInfo) { // 这个是xlsx格式的加密
+  if (encryptionInfo) { // This is encrypted in xlsx format
     const encryptedPackage = CFB.find(cfb, '/EncryptedPackage');
     const einfo = common.parseEncryptionInfo(encryptionInfo.content);
     const password = options.password;
@@ -64,12 +71,28 @@ async function decrypt(input, options) {
  * @returns
  */
 function encrypt(input, options) {
-  if (!Buffer.isBuffer(input)) throw new Error('The input must be a buffer');
+  if (!Buffer.isBuffer(input)) {
+    // This is an ArrayBuffer in the browser. Convert to a Buffer.
+    if (ArrayBuffer.isView(input)) {
+      input = Buffer.from(input);
+    } else {
+      throw new Error('The input must be a buffer');
+    }
+  }
   if (!options || !options.password) throw new Error('options.password is required');
 
   const maxFieldLength = 255;
   if (options.password.length > maxFieldLength) throw new Error(`The maximum password length is ${maxFieldLength}`);
-  const output = ecma376Agile.encrypt(input, options.password);
+  let output;
+
+  if (options.hasOwnProperty('type') && !['standard'].includes(options.type)) {
+    throw new Error(`options.type must be ['standard']`);
+  }
+  if (options.type === 'standard') {
+    output = ecma376Standard.encryptStandard(input, options.password);
+  } else {
+    output = ecma376Agile.encrypt(input, options.password);
+  }
   return output;
 }
 

@@ -16,6 +16,12 @@ declare namespace officeCrypto{
          * required
          */
         password: string;
+
+        /**
+         * @desc Encryption Type
+         * optional
+         */
+        type?: 'standard';
     }
 
     /**
