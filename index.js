@@ -69,7 +69,16 @@ function encrypt(input, options) {
 
   const maxFieldLength = 255;
   if (options.password.length > maxFieldLength) throw new Error(`The maximum password length is ${maxFieldLength}`);
-  const output = ecma376Agile.encrypt(input, options.password);
+  let output;
+
+  if (options.hasOwnProperty('type') && !['standard'].includes(options.type)) {
+    throw new Error(`options.type must be ['standard']`);
+  }
+  if (options.type === 'standard') {
+    output = ecma376Standard.encryptStandard(input, options.password);
+  } else {
+    output = ecma376Agile.encrypt(input, options.password);
+  }
   return output;
 }
 

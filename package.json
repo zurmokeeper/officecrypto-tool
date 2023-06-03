@@ -12,6 +12,7 @@
     "ole"
 	],
   "private": false,
+  "license": "MIT",
   "author": "zurmokeeper",
   "main": "index.js",
   "scripts": {
