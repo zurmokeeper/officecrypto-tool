@@ -43,6 +43,10 @@ function xorBytes(a, b) {
 }
 
 exports.verifyKey = function verifyKey(key, encryptedVerifier, encryptedVerifierHash) {
+  // In the browser environment. Convert to a Buffer.
+  if (!Buffer.isBuffer(encryptedVerifier)) encryptedVerifier = Buffer.from(encryptedVerifier);
+  if (!Buffer.isBuffer(encryptedVerifierHash)) encryptedVerifierHash = Buffer.from(encryptedVerifierHash);
+
   const aes = crypto.createDecipheriv('aes-128-ecb', key, Buffer.alloc(0));
   aes.setAutoPadding(false);
   let verifier = aes.update(encryptedVerifier);
@@ -59,6 +63,9 @@ exports.decrypt = function decrypt(key, input) {
   const outputChunks = [];
   const offset = 8;
   const blockSize = 16;
+
+  // In the browser environment. Convert to a Buffer.
+  if (!Buffer.isBuffer(input)) input = Buffer.from(input);
 
   // The package is encoded in chunks. Encrypt/decrypt each and concat.
   let start = 0; let end = 0;
