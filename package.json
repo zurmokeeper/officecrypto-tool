@@ -21,6 +21,8 @@
     "lint-staged": "pnpm dlx lint-staged",
     "lint": "eslint --ext .js",
     "test": "jest",
+    "rc4": "jest tests/rc4/decrypt.test.js",
+    "rc4api": "jest tests/rc4_crypto_api/decrypt.test.js",
     "coverage": "jest --coverage"
   },
   "types": "index.d.ts",

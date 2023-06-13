@@ -6,6 +6,8 @@ const common = require('./src/util/common');
 const ecma376Standard = require('./src/crypto/ecma376_standard');
 const ecma376Agile = require('./src/crypto/ecma376_agile');
 
+const xls97File = require('./src/util/xls97');
+
 
 /**
  *
@@ -26,12 +28,12 @@ async function decrypt(input, options) {
 
   const cfb = CFB.read(input, {type: 'buffer'});
   const encryptionInfo = CFB.find(cfb, '/EncryptionInfo');
+  const password = options.password;
+  let output;
 
   if (encryptionInfo) { // This is encrypted in xlsx format
     const encryptedPackage = CFB.find(cfb, '/EncryptedPackage');
     const einfo = common.parseEncryptionInfo(encryptionInfo.content);
-    const password = options.password;
-    let output;
 
     if (einfo.type === 'standard') {
       const {Flags, AlgID, AlgIDHash, KeySize, ProviderType} = einfo.h;
@@ -59,6 +61,12 @@ async function decrypt(input, options) {
     if (einfo.type === 'extensible') {
     }
     throw new Error('Unsupported encryption algorithms');
+  }
+
+  const Workbook = CFB.find(cfb, 'Workbook');
+  if (Workbook) {
+    output = xls97File.decrypt(cfb, Workbook.content, password);
+    return output;
   }
 
   throw new Error('Unsupported encryption algorithms');
