@@ -6,7 +6,7 @@ officecrypto-tool is a library for js that can be used to decrypt and encrypt of
 ## Special Notes
 The implementation of this library refers to [xlsx](https://www.npmjs.com/package/xlsx) and [xlsx-populate](https://www.npmjs.com/package/xlsx-populate), especially `xlsx-populate`, part of the source code reference and directly copied over.
 
-Now it supports encryption and decryption of` MS office and WPS xlsx suffix files`, `xls suffix` encryption and decryption is not supported yet.
+Now it supports encryption and decryption of` MS office and WPS xlsx suffix files`, `xls suffix` encryption is not supported yet.
 
 ## Contents
 
