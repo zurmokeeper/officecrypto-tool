@@ -1,7 +1,7 @@
 # officecrypto-tool
 
 
-officeCrypto is a library for js that can be used to decrypt and encrypt office(excel/ppt/word) files..
+officecrypto-tool is a library for js that can be used to decrypt and encrypt office(excel/ppt/word) files..
 
 ## Special Notes
 The implementation of this library refers to [xlsx](https://www.npmjs.com/package/xlsx) and [xlsx-populate](https://www.npmjs.com/package/xlsx-populate), especially `xlsx-populate`, part of the source code reference and directly copied over.
@@ -59,13 +59,13 @@ const fs = require('fs').promises;
   * [x] MS-DOCX (OOXML) (Word 2007-2016)
   * [x] MS-XLSX (OOXML) (Excel 2007-2016)
   * [x] MS-PPTX (OOXML) (PowerPoint 2007-2016)
-* [] Office Binary Document RC4 CryptoAPI
+* [x] Office Binary Document RC4 CryptoAPI
   * [] MS-DOC (Word 2002, 2003, 2004)
-  * [] MS-XLS (Excel 2002, 2003, 2004) (experimental)
+  * [x] MS-XLS (Excel 2002, 2003, 2004) (experimental)
   * [] MS-PPT (PowerPoint 2002, 2003, 2004) (partial, experimental)
-* [] Office Binary Document RC4
+* [x] Office Binary Document RC4
   * [] MS-DOC (Word 97, 98, 2000)
-  * [] MS-XLS (Excel 97, 98, 2000) (experimental)
+  * [x] MS-XLS (Excel 97, 98, 2000) (experimental)
 * [ ] ECMA-376 (Extensible Encryption)
 * [ ] XOR Obfuscation
 
@@ -92,8 +92,9 @@ pnpm run test
 * [x] Support decryption and encryption  with passwords
 * [x] Support older encryption schemes
 * [x] Add decryption tests for various file formats
+* [x] Support frontend
 * [ ] Support more encryption and decrytion 
-* [ ] Support frontend
+
 
 ## Resources
 
