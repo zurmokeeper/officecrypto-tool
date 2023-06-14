@@ -450,6 +450,7 @@ function parseRC4CryptoAPIEncryptionVerifier(blob) {
 }
 
 exports.decrypt = function decrypt(currCfb, blob, password) {
+  if (!Buffer.isBuffer(blob)) blob = Buffer.from(blob);
   const bof = blob.read_shift(2);
   const bofSize = blob.read_shift(2);
   blob.l = blob.l + bofSize; // -> skip BOF record
