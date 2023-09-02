@@ -104,6 +104,38 @@ function encrypt(input, options) {
   return output;
 }
 
+/**
+ *
+ * @param {*} input
+ * @returns
+ */
+function isEncrypted(input) {
+  if (!Buffer.isBuffer(input)) {
+    // This is an ArrayBuffer in the browser. Convert to a Buffer.
+    if (ArrayBuffer.isView(input)) {
+      input = Buffer.from(input);
+    } else {
+      throw new Error('The input must be a buffer');
+    }
+  }
+  const cfb = CFB.read(input, {type: 'buffer'});
+  const encryptionInfo = CFB.find(cfb, '/EncryptionInfo');
+  if (encryptionInfo) return true;
+  const Workbook = CFB.find(cfb, 'Workbook');
+  if (Workbook) {
+    let blob = Workbook.content;
+    if (!Buffer.isBuffer(blob)) blob = Buffer.from(blob);
+    const bof = blob.read_shift(2);
+    const bofSize = blob.read_shift(2);
+    blob.l = blob.l + bofSize; // -> skip BOF record
+    const filePass = blob.read_shift(2);
+    if (filePass === 47) { // 'FilePass': 47,
+      return true;
+    }
+  }
+  return false;
+}
 
 exports.decrypt = decrypt;
 exports.encrypt = encrypt;
+exports.isEncrypted = isEncrypted;

@@ -49,6 +49,17 @@ const fs = require('fs').promises;
         const output = officeCrypto.encrypt(input, {password: '123456'});
         await fs.writeFile(`standard_out_success.xlsx`, output);
 })()
+
+//Determine whether excel file is encrypted or not, support xls and xlsx format, encrypted is true, not encrypted is false.
+(async ()=>{
+        const input = await fs.readFile(`encrypted_test.xlsx`);
+        const isEncrypted = officeCrypto.isEncrypted(input);
+        // output: true
+
+        const input1 = await fs.readFile(`not_encrypted_test.xlsx`);
+        const isEncrypted1 = officeCrypto.isEncrypted(input1);
+        // output: false
+})()
 ```
 
 ## Supported encryption methods

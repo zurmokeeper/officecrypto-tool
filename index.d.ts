@@ -38,4 +38,10 @@ declare namespace officeCrypto{
      * @description decryption methods,For the time being only support ecma376 agile
      */
     function decrypt(input: Buffer, options: Options): Promise<Buffer>;
+
+    /**
+     * @param input  Input buffer
+     * @description Determine whether excel file is encrypted or not, support xls and xlsx format, encrypted is true, not encrypted is false.
+     */
+    function isEncrypted(input: Buffer): boolean;
 }
