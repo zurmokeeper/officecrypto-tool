@@ -22,7 +22,10 @@
     "lint": "eslint --ext .js",
     "test": "jest",
     "coverage": "jest --coverage",
-    "testExcel": "jest tests/excel/excel.test.js"
+    "testExcel": "jest tests/excel/excel.test.js",
+    "testDoc": "jest tests/rc4/decrypt.test.js",
+    "testDocOffice": "jest tests/rc4_crypto_api/decrypt.test.js",
+    "testWord": "jest tests/excel/word.test.js"
   },
   "types": "index.d.ts",
   "dependencies": {
