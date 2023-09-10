@@ -18,26 +18,26 @@ const parseFibBase = exports.parseFibBase = function parseFibBase(blob) {
   const lid = blob.read_shift(2);
   const pnNext = blob.read_shift(2);
 
-  const buffer1 = blob.read_shift(2); // 1451
+  const buffer1 = blob.read_shift(2);
 
-  const fDot = getBit(buffer1, 0); // 0
-  const fGlsy = getBit(buffer1, 1); // 0
-  const fComplex = getBit(buffer1, 2); // 1
-  const fHasPic = getBit(buffer1, 3); // 0
-  const cQuickSaves = getBitSlice(buffer1, 4, 4); // 1
-  const fEncrypted = getBit(buffer1, 8); // 1
+  const fDot = getBit(buffer1, 0);
+  const fGlsy = getBit(buffer1, 1);
+  const fComplex = getBit(buffer1, 2);
+  const fHasPic = getBit(buffer1, 3);
+  const cQuickSaves = getBitSlice(buffer1, 4, 4);
+  const fEncrypted = getBit(buffer1, 8);
   const fWhichTblStm = getBit(buffer1, 9);
   const fReadOnlyRecommended = getBit(buffer1, 10);
   const fWriteReservation = getBit(buffer1, 11);
   const fExtChar = getBit(buffer1, 12);
   const fLoadOverride = getBit(buffer1, 13);
   const fFarEast = getBit(buffer1, 14);
-  const fObfuscation = getBit(buffer1, 15); // 0
+  const fObfuscation = getBit(buffer1, 15);
 
   const nFibBack = blob.read_shift(2);
-  const IKey = blob.read_shift(4); // <I  // 3400
-  const envr = blob.read_shift(1); // <B
-  const buffer2 = blob.read_shift(1); // <B
+  const IKey = blob.read_shift(4);
+  const envr = blob.read_shift(1);
+  const buffer2 = blob.read_shift(1);
 
   const fMac = getBit(buffer2, 0);
   const fEmptySpecial = getBit(buffer2, 1);
@@ -48,8 +48,8 @@ const parseFibBase = exports.parseFibBase = function parseFibBase(blob) {
 
   const reserved3 = blob.read_shift(2);
   const reserved4 = blob.read_shift(2);
-  const reserved5 = blob.read_shift(4); // <I
-  const reserved6 = blob.read_shift(4); // <I
+  const reserved5 = blob.read_shift(4);
+  const reserved6 = blob.read_shift(4);
 
   let tableName = '1Table';
   if (fWhichTblStm === 0) {
@@ -205,15 +205,13 @@ function parseRC4CryptoAPIEncryptionVerifier(blob) {
   return data;
 }
 
-exports.decrypt = function decrypt(currCfb, blob, password) {
+exports.decrypt = function decrypt(currCfb, blob, password, input) {
   if (!Buffer.isBuffer(blob)) blob = Buffer.from(blob);
 
   const fibBase = parseFibBase(blob);
-  //   console.log('---->fibBase', fibBase);
   const fEncrypted = fibBase.fEncrypted;
-  if (fEncrypted === 0) { // 非加密 TODO:
-    // return currCfb;
-    throw new Error('Unsupported encryption algorithms');
+  if (fEncrypted === 0) { // unencrypted
+    return input; // Not encrypted returns directly to the original buffer
   }
   const fObfuscation = fibBase.fObfuscation;
   if (fObfuscation === 1) { // XOR obfuscation
@@ -255,17 +253,16 @@ exports.decrypt = function decrypt(currCfb, blob, password) {
 /**
  * @desc
  */
-function rc4Decrypt(currCfb, wordBlob, password, data, fibBase ) {
+function rc4Decrypt(currCfb, wordBlob, password, data, fibBase) {
   fibBase.fEncrypted = 0;
   fibBase.fObfuscation = 0;
   fibBase.IKey = 0;
 
   const newFibBase = buildFibBase(fibBase);
-  const FIB_LENGTH = 0x44; // 68个字节
+  const FIB_LENGTH = 0x44; // 68 bytes
 
-  // wordBlob 的偏移量已经是32了
-  //   blob.l = 32
-  const buffer = wordBlob.slice(wordBlob.l, FIB_LENGTH); // 拿到36个字节
+  // The offset of wordBlob is already 32.  blob.l = 32
+  const buffer = wordBlob.slice(wordBlob.l, FIB_LENGTH); // Get the 36 bytes.
 
   const encryptedBuf = wordBlob;
   const {salt, keySize, type} = data;
@@ -275,11 +272,10 @@ function rc4Decrypt(currCfb, wordBlob, password, data, fibBase ) {
   } else {
     dec = documentRC4CryptoAPI.decrypt(password, salt, keySize, encryptedBuf);
   }
-  // 舍弃dec 前的 68 位
+  // Discard the first 68 bytes of dec
   dec = dec.slice(FIB_LENGTH);
 
   const newWordDocumentBuffer = Buffer.concat([newFibBase, buffer, dec]);
-  //   console.log('dec', newWordDocumentBuffer.toString('hex'), newWordDocumentBuffer.length);
 
   let tableDec;
   const tableName = fibBase.tableName;

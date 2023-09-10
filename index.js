@@ -66,15 +66,17 @@ async function decrypt(input, options) {
 
   const Workbook = CFB.find(cfb, 'Workbook');
   if (Workbook) {
-    output = xls97File.decrypt(cfb, Workbook.content, password);
+    output = xls97File.decrypt(cfb, Workbook.content, password, input);
     return output;
   }
 
   const WordWorkbook = CFB.find(cfb, 'wordDocument');
   if (WordWorkbook) {
-    output = doc97File.decrypt(cfb, WordWorkbook.content, password);
+    output = doc97File.decrypt(cfb, WordWorkbook.content, password, input);
     return output;
   }
+
+  if (!encryptionInfo) return input; // Not encrypted returns directly to the original buffer
 
   throw new Error('Unsupported encryption algorithms');
 }

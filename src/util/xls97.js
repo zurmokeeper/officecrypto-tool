@@ -449,7 +449,7 @@ function parseRC4CryptoAPIEncryptionVerifier(blob) {
   return data;
 }
 
-exports.decrypt = function decrypt(currCfb, blob, password) {
+exports.decrypt = function decrypt(currCfb, blob, password, input) {
   if (!Buffer.isBuffer(blob)) blob = Buffer.from(blob);
   const bof = blob.read_shift(2);
   const bofSize = blob.read_shift(2);
@@ -459,6 +459,9 @@ exports.decrypt = function decrypt(currCfb, blob, password) {
   // If this record exists, the workbook MUST be encrypted.
 
   const filePass = blob.read_shift(2);
+  if (filePass !== 47) { // 'FilePass': 47,
+    return input; // Not encrypted returns directly to the original buffer
+  }
   const filePassSize = blob.read_shift(2);
   const wEncryptionType = blob.read_shift(2);
   if (wEncryptionType === 0x0000) { // XOR obfuscation
