@@ -7,6 +7,7 @@ const ecma376Standard = require('./src/crypto/ecma376_standard');
 const ecma376Agile = require('./src/crypto/ecma376_agile');
 
 const xls97File = require('./src/util/xls97');
+const doc97File = require('./src/util/doc97');
 
 
 /**
@@ -65,9 +66,17 @@ async function decrypt(input, options) {
 
   const Workbook = CFB.find(cfb, 'Workbook');
   if (Workbook) {
-    output = xls97File.decrypt(cfb, Workbook.content, password);
+    output = xls97File.decrypt(cfb, Workbook.content, password, input);
     return output;
   }
+
+  const WordWorkbook = CFB.find(cfb, 'wordDocument');
+  if (WordWorkbook) {
+    output = doc97File.decrypt(cfb, WordWorkbook.content, password, input);
+    return output;
+  }
+
+  if (!encryptionInfo) return input; // Not encrypted returns directly to the original buffer
 
   throw new Error('Unsupported encryption algorithms');
 }
@@ -133,6 +142,18 @@ function isEncrypted(input) {
       return true;
     }
   }
+
+  const WordDocument = CFB.find(cfb, 'wordDocument');
+  if (WordDocument) {
+    let blob = WordDocument.content;
+    if (!Buffer.isBuffer(blob)) blob = Buffer.from(blob);
+    const fibBase = doc97File.parseFibBase(blob);
+    const fEncrypted = fibBase.fEncrypted;
+    if (fEncrypted === 1) {
+      return true;
+    }
+  }
+
   return false;
 }
 
