@@ -42,4 +42,14 @@ describe('rc4_crypto_api decrypt', () => {
     await fs.writeFile(`${encryptFilePath}/decrypt_unencrypted_xlsx_success.xlsx`, output);
     // expect(200).toEqual(200);
   });
+
+  it('decrypt rc4_crypto_api xls, the password is incorrect', async () => {
+    const test = function test() {
+      return async function() {
+        const input = await fs.readFile(`${filePath}/rc4_cryptoapi_pass_test.xls`);
+        const output = await officeCrypto.decrypt(input, {password: 'xxxxx'});
+      };
+    };
+    await expect(test()).rejects.toThrowError(new Error( `The password is incorrect` ));
+  });
 });

@@ -77,14 +77,16 @@ const fs = require('fs').promises;
 * [x] Office Binary Document RC4
   * [x] MS-DOC (Word 97, 98, 2000)
   * [x] MS-XLS (Excel 97, 98, 2000) (experimental)
+* [x] XOR Obfuscation
+  * [x] MS-XLS
+  * [] MS-DOC
 * [ ] ECMA-376 (Extensible Encryption)
-* [ ] XOR Obfuscation
 
 ### Other
 
-* [ ] Word 95 Encryption (Word 95 and prior)
-* [ ] Excel 95 Encryption (Excel 95 and prior)
-* [ ] PowerPoint 95 Encryption (PowerPoint 95 and prior)
+* [ ] Word 95 Encryption And Decryption (Word 95 and prior)
+* [ ] Excel 95 Encryption And Decryption (Excel 95 and prior)
+* [ ] PowerPoint 95 Encryption And Decryption (PowerPoint 95 and prior)
 
 PRs are welcome!
 
