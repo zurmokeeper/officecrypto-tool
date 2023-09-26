@@ -4,6 +4,7 @@ const CFB = require('cfb');
 
 const documentRC4 = require('../crypto/rc4');
 const documentRC4CryptoAPI = require('../crypto/rc4_cryptoapi');
+const documentXOR = require('../crypto/xor_obfuscation');
 
 const recordNameNum = {
   'Formula': 6,
@@ -464,8 +465,17 @@ exports.decrypt = function decrypt(currCfb, blob, password, input) {
   }
   const filePassSize = blob.read_shift(2);
   const wEncryptionType = blob.read_shift(2);
+
+  const data = {};
+
   if (wEncryptionType === 0x0000) { // XOR obfuscation
-    throw new Error('The XOR obfuscation algorithm is not supported at this time');
+    const key = blob.read_shift(2);
+    const verificationBytes = blob.read_shift(2);
+    // console.log('key-->', key, verificationBytes);
+    const invalid = documentXOR.verifyPassword(password, verificationBytes);
+    if (!invalid) throw new Error('The password is incorrect');
+    const output = rc4Decrypt(currCfb, blob, password, data);
+    return output;
   }
   if (wEncryptionType !== 0x0001) { // 0x0001 rc4
     throw new Error('Unsupported encryption algorithms');
@@ -473,7 +483,7 @@ exports.decrypt = function decrypt(currCfb, blob, password, input) {
 
   const vMajor = blob.read_shift(2);
   const vMinor = blob.read_shift(2);
-  const data = {};
+
   if (vMajor === 0x0001 && vMinor === 0x0001) { // RC4
     const info = parseHeaderRC4(blob);
     const {Salt, EncryptedVerifier, EncryptedVerifierHash} = info;
@@ -534,7 +544,8 @@ function rc4Decrypt(currCfb, blob, password, data) {
     } else if (num === recordNameNum.BoundSheet8) {
       const lbPlyPos = record.slice(0, 4);
       const restSize = size - 4;
-      plainBuf.push(...header, ...lbPlyPos, ...Array(restSize).fill(-1));
+      // plainBuf.push(...header, ...lbPlyPos, ...Array(restSize).fill(-1));
+      plainBuf.push(...header, ...lbPlyPos, ...Array(restSize).fill(-2));
       encryptedBuf.push(Buffer.concat([Buffer.alloc(4), Buffer.alloc(4), record.slice(4)]));
     } else {
       plainBuf.push(...header, ...Array(size).fill(-1));
@@ -549,13 +560,15 @@ function rc4Decrypt(currCfb, blob, password, data) {
   const blocksize = 1024;
   if (type === 'rc4') {
     dec = documentRC4.decrypt(password, salt, encryptedBuf, blocksize);
-  } else {
+  } else if (type === 'rc4_crypto_api') {
     dec = documentRC4CryptoAPI.decrypt(password, salt, keySize, encryptedBuf, blocksize);
+  } else {
+    dec = documentXOR.decrypt(password, encryptedBuf, plainBuf);
   }
 
   for (let i = 0; i < plainBuf.length; i++) {
     const c = plainBuf[i];
-    if (c !== -1) {
+    if (c !== -1 && c !== -2) {
       dec.writeUInt8(c, i);
     }
   }
