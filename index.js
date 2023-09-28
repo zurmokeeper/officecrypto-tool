@@ -8,7 +8,7 @@ const ecma376Agile = require('./src/crypto/ecma376_agile');
 
 const xls97File = require('./src/util/xls97');
 const doc97File = require('./src/util/doc97');
-
+const ppt97File = require('./src/util/ppt97');
 
 /**
  *
@@ -73,6 +73,12 @@ async function decrypt(input, options) {
   const WordWorkbook = CFB.find(cfb, 'wordDocument');
   if (WordWorkbook) {
     output = doc97File.decrypt(cfb, WordWorkbook.content, password, input);
+    return output;
+  }
+
+  const PowerPointBook = CFB.find(cfb, 'PowerPoint Document');
+  if (PowerPointBook) {
+    output = ppt97File.decrypt(cfb, PowerPointBook.content, password, input);
     return output;
   }
 
@@ -150,6 +156,23 @@ function isEncrypted(input) {
     const fibBase = doc97File.parseFibBase(blob);
     const fEncrypted = fibBase.fEncrypted;
     if (fEncrypted === 1) {
+      return true;
+    }
+  }
+
+  const PowerPointBook = CFB.find(cfb, 'PowerPoint Document');
+  if (PowerPointBook) {
+    let blob = PowerPointBook.content;
+    if (!Buffer.isBuffer(blob)) blob = Buffer.from(blob);
+
+    const CurrentUser = CFB.find(cfb, 'Current User');
+    let currentUserBlob = CurrentUser.content;
+    if (!Buffer.isBuffer(currentUserBlob)) currentUserBlob = Buffer.from(currentUserBlob);
+
+    const currentUser = ppt97File.parseCurrentUser(currentUserBlob);
+    blob.l = currentUser.currentUserAtom.offsetToCurrentEdit;
+    const userEditAtom = ppt97File.parseUserEditAtom(blob);
+    if (userEditAtom.rh.recLen === 0x00000020) {
       return true;
     }
   }
