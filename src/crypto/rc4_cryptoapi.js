@@ -39,10 +39,9 @@ exports.verifyPassword = function verifyPassword(password, salt, keySize, encryp
 /**
  * @desc
  */
-exports.decrypt = function decrypt(password, salt, KeySize, input, blocksize = 0x200) {
+exports.decrypt = function decrypt(password, salt, KeySize, input, blocksize = 0x200, block = 0) {
   let start = 0;
   let end = 0;
-  let block = 0;
   let key = convertPasswordToKey(password, salt, KeySize, block);
 
   const outputChunks = [];
