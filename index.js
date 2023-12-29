@@ -19,7 +19,7 @@ const ppt97File = require('./src/util/ppt97');
 async function decrypt(input, options) {
   if (!Buffer.isBuffer(input)) {
     // This is an ArrayBuffer in the browser. Convert to a Buffer.
-    if (ArrayBuffer.isView(input)) {
+    if (input instanceof ArrayBuffer) {
       input = Buffer.from(input);
     } else {
       throw new Error('The input must be a buffer');
