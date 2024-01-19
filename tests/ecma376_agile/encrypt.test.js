@@ -14,6 +14,22 @@ describe('ecma376_agile encrypt', () => {
     // expect(200).toEqual(200);
   });
 
+  it('encrypt success, input is ArrayBuffer', async () => {
+    const input = await fs.readFile(`${filePath}/agile_input_test.xlsx`);
+    const arrayBuffer = input.buffer.slice(input.byteOffset, input.byteOffset + input.byteLength);
+    const output = officeCrypto.encrypt(arrayBuffer, {password: '123456'});
+    await fs.writeFile(`${filePath}/agile_pass_out_success_arraybuffer.xlsx`, output);
+    // expect(200).toEqual(200);
+  });
+
+  it('encrypt success, input is TypeBuffer', async () => {
+    const input = await fs.readFile(`${filePath}/agile_input_test.xlsx`);
+    const typeBuffer = new Uint8Array(input);
+    const output = officeCrypto.encrypt(typeBuffer, {password: '123456'});
+    await fs.writeFile(`${filePath}/agile_pass_out_success_typeBuffer.xlsx`, output);
+    // expect(200).toEqual(200);
+  });
+
   it('encrypt failure. The password length is 256, The maximum password length is 255', async () => {
     const test = function test() {
       return async function() {
