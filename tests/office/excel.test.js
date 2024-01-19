@@ -14,6 +14,20 @@ describe('Excel isEncrypted', () => {
     expect(isEncrypted).toEqual(true);
   });
 
+  it('ecma376_agile: The file is encrypted. Input is ArrayBuffer', async () => {
+    const input = await fs.readFile(`${decryptFilePath}/agile_pass_test.xlsx`);
+    const arrayBuffer = input.buffer.slice(input.byteOffset, input.byteOffset + input.byteLength);
+    const isEncrypted = officeCrypto.isEncrypted(arrayBuffer);
+    expect(isEncrypted).toEqual(true);
+  });
+
+  it('ecma376_agile: The file is encrypted. Input is TypeBuffer', async () => {
+    const input = await fs.readFile(`${decryptFilePath}/agile_pass_test.xlsx`);
+    const typeBuffer = new Uint8Array(input);
+    const isEncrypted = officeCrypto.isEncrypted(typeBuffer);
+    expect(isEncrypted).toEqual(true);
+  });
+
   it('ecma376_agile: The file is not encrypted.', async () => {
     const input = await fs.readFile(`${encryptFilePath}/agile_input_test.xlsx`);
     const isEncrypted = officeCrypto.isEncrypted(input);
