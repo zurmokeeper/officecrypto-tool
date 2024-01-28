@@ -66,19 +66,34 @@ async function decrypt(input, options) {
 
   const Workbook = CFB.find(cfb, 'Workbook');
   if (Workbook) {
-    output = xls97File.decrypt(cfb, Workbook.content, password, input);
+    let workbookContent = Workbook.content;
+    if (!Buffer.isBuffer(workbookContent)) {
+      workbookContent = Buffer.from(workbookContent);
+      CFB.utils.prep_blob(workbookContent, 0);
+    }
+    output = xls97File.decrypt(cfb, workbookContent, password, input);
     return output;
   }
 
   const WordWorkbook = CFB.find(cfb, 'wordDocument');
   if (WordWorkbook) {
-    output = doc97File.decrypt(cfb, WordWorkbook.content, password, input);
+    let wordWorkbookContent = WordWorkbook.content;
+    if (!Buffer.isBuffer(wordWorkbookContent)) {
+      wordWorkbookContent = Buffer.from(wordWorkbookContent);
+      CFB.utils.prep_blob(wordWorkbookContent, 0);
+    }
+    output = doc97File.decrypt(cfb, wordWorkbookContent, password, input);
     return output;
   }
 
   const PowerPointBook = CFB.find(cfb, 'PowerPoint Document');
   if (PowerPointBook) {
-    output = ppt97File.decrypt(cfb, PowerPointBook.content, password, input);
+    let powerPointBookContent = PowerPointBook.content;
+    if (!Buffer.isBuffer(powerPointBookContent)) {
+      powerPointBookContent = Buffer.from(powerPointBookContent);
+      CFB.utils.prep_blob(powerPointBookContent, 0);
+    }
+    output = ppt97File.decrypt(cfb, powerPointBookContent, password, input);
     return output;
   }
 
@@ -139,7 +154,10 @@ function isEncrypted(input) {
   const Workbook = CFB.find(cfb, 'Workbook');
   if (Workbook) {
     let blob = Workbook.content;
-    if (!Buffer.isBuffer(blob)) blob = Buffer.from(blob);
+    if (!Buffer.isBuffer(blob)) {
+      blob = Buffer.from(blob);
+      CFB.utils.prep_blob(blob, 0);
+    }
     const bof = blob.read_shift(2);
     const bofSize = blob.read_shift(2);
     blob.l = blob.l + bofSize; // -> skip BOF record
@@ -152,7 +170,10 @@ function isEncrypted(input) {
   const WordDocument = CFB.find(cfb, 'wordDocument');
   if (WordDocument) {
     let blob = WordDocument.content;
-    if (!Buffer.isBuffer(blob)) blob = Buffer.from(blob);
+    if (!Buffer.isBuffer(blob)) {
+      blob = Buffer.from(blob);
+      CFB.utils.prep_blob(blob, 0);
+    }
     const fibBase = doc97File.parseFibBase(blob);
     const fEncrypted = fibBase.fEncrypted;
     if (fEncrypted === 1) {
@@ -163,11 +184,17 @@ function isEncrypted(input) {
   const PowerPointBook = CFB.find(cfb, 'PowerPoint Document');
   if (PowerPointBook) {
     let blob = PowerPointBook.content;
-    if (!Buffer.isBuffer(blob)) blob = Buffer.from(blob);
+    if (!Buffer.isBuffer(blob)) {
+      blob = Buffer.from(blob);
+      CFB.utils.prep_blob(blob, 0);
+    }
 
     const CurrentUser = CFB.find(cfb, 'Current User');
     let currentUserBlob = CurrentUser.content;
-    if (!Buffer.isBuffer(currentUserBlob)) currentUserBlob = Buffer.from(currentUserBlob);
+    if (!Buffer.isBuffer(currentUserBlob)) {
+      currentUserBlob = Buffer.from(currentUserBlob);
+      CFB.utils.prep_blob(currentUserBlob, 0);
+    }
 
     const currentUser = ppt97File.parseCurrentUser(currentUserBlob);
     blob.l = currentUser.currentUserAtom.offsetToCurrentEdit;
