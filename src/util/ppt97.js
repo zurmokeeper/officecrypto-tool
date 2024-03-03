@@ -366,7 +366,10 @@ exports.decrypt = function decrypt(currCfb, powerPointBlob, password, input) {
     throw new Error('Current User does not exist');
   }
   let currentUserBlob = CurrentUser.content;
-  if (!Buffer.isBuffer(currentUserBlob)) currentUserBlob = Buffer.from(currentUserBlob);
+  if (!Buffer.isBuffer(currentUserBlob)) {
+    currentUserBlob = Buffer.from(currentUserBlob);
+    CFB.utils.prep_blob(currentUserBlob, 0);
+  }
   const persistObjectDirectory = constructPersistObjectDirectory(currentUserBlob, powerPointBlob);
 
   currentUserBlob.l = 0;
