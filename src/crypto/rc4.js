@@ -2,6 +2,7 @@
 
 
 const crypto = require('crypto');
+const CryptoJS = require('crypto-js');
 
 /**
  * @desc
@@ -23,17 +24,40 @@ function convertPasswordToKey(password, salt, block) {
   return key;
 }
 
+/**
+ * @desc Only node.js is supported.
+ * @returns
+ */
+// exports.verifyPassword = function verifyPw(password, salt, encryptedVerifier, encryptedVerifierHash) {
+//   const block = 0;
+//   const key = convertPasswordToKey(password, salt, block);
+//   const cipher = crypto.createDecipheriv('rc4', key, '');
+//   const verifier = Buffer.concat([cipher.update(encryptedVerifier)]);
+
+//   const hash = crypto.createHash('md5').update(verifier).digest();
+
+//   const verifierHash = Buffer.concat([cipher.update(encryptedVerifierHash), cipher.final()]);
+
+//   return verifierHash.equals(hash);
+// };
+
+/**
+ * @desc Because crypto's front-end compatibility library, crypto-browserify, does not support the rc4 algorithm,
+ * we have switched to crypto-js to handle the rc4 algorithm for both node.js and the browser side.
+ * @returns
+ */
 exports.verifyPassword = function verifyPw(password, salt, encryptedVerifier, encryptedVerifierHash) {
   const block = 0;
   const key = convertPasswordToKey(password, salt, block);
-  const cipher = crypto.createDecipheriv('rc4', key, '');
-  const verifier = Buffer.concat([cipher.update(encryptedVerifier)]);
 
-  const hash = crypto.createHash('md5').update(verifier).digest();
+  const cipher = CryptoJS.algo.RC4.createDecryptor(CryptoJS.lib.WordArray.create(key));
+  const verifier = cipher.finalize(CryptoJS.lib.WordArray.create(encryptedVerifier));
 
-  const verifierHash = Buffer.concat([cipher.update(encryptedVerifierHash), cipher.final()]);
+  const hash = CryptoJS.MD5(verifier);
 
-  return verifierHash.equals(hash);
+  const verifierHash = cipher.finalize(CryptoJS.lib.WordArray.create(encryptedVerifierHash));
+
+  return verifierHash.toString(CryptoJS.enc.Hex) === hash.toString(CryptoJS.enc.Hex);
 };
 
 /**
@@ -54,9 +78,16 @@ exports.decrypt = function decrypt(password, salt, input, blocksize = 0x200) {
     // Grab the next chunk
     const inputChunk = input.slice(start, end);
 
+    // Only node.js is supported.
     // Encrypt/decrypt the chunk and add it to the array
-    const cipher = crypto.createDecipheriv('rc4', key, '');
-    const outputChunk = Buffer.concat([cipher.update(inputChunk), cipher.final()]);
+    // const cipher = crypto.createDecipheriv('rc4', key, '');
+    // const outputChunk = Buffer.concat([cipher.update(inputChunk), cipher.final()]);
+
+    // Supports both node.js and browsers.
+    const cipher = CryptoJS.algo.RC4.createDecryptor(CryptoJS.lib.WordArray.create(key));
+    let outputChunk = cipher.finalize(CryptoJS.lib.WordArray.create(inputChunk));
+    outputChunk = Buffer.from(outputChunk.toString(CryptoJS.enc.Hex), 'hex');
+
     outputChunks.push(outputChunk);
 
     block += 1;
