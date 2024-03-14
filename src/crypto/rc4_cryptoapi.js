@@ -25,17 +25,17 @@ function convertPasswordToKey(password, salt, keyLength, block, algIdHash = 0x00
 /**
  * @desc Only node.js is supported.
  */
-exports.verifyPassword = function verifyPassword(password, salt, keySize, encryptedVerifier, encryptedVerifierHash, algId = 0x00006801, block = 0) {
-  // https://learn.microsoft.com/en-us/openspecs/office_file_formats/ms-offcrypto/fbfe41db-ca02-413a-a3bb-609fa0b25cd3?redirectedfrom=MSDN
-  const key = convertPasswordToKey(password, salt, keySize, block);
-  const cipher = crypto.createDecipheriv('rc4', key, '');
-  const verifier = Buffer.concat([cipher.update(encryptedVerifier)]);
-  const verifierHash = Buffer.concat([cipher.update(encryptedVerifierHash), cipher.final()]);
+// exports.verifyPassword = function verifyPassword(password, salt, keySize, encryptedVerifier, encryptedVerifierHash, algId = 0x00006801, block = 0) {
+//   // https://learn.microsoft.com/en-us/openspecs/office_file_formats/ms-offcrypto/fbfe41db-ca02-413a-a3bb-609fa0b25cd3?redirectedfrom=MSDN
+//   const key = convertPasswordToKey(password, salt, keySize, block);
+//   const cipher = crypto.createDecipheriv('rc4', key, '');
+//   const verifier = Buffer.concat([cipher.update(encryptedVerifier)]);
+//   const verifierHash = Buffer.concat([cipher.update(encryptedVerifierHash), cipher.final()]);
 
-  const hash = crypto.createHash('sha1').update(verifier).digest();
-  //   console.log([verifierHash, hash]);
-  return Buffer.compare(verifierHash, hash) === 0;
-};
+//   const hash = crypto.createHash('sha1').update(verifier).digest();
+//   //   console.log([verifierHash, hash]);
+//   return Buffer.compare(verifierHash, hash) === 0;
+// };
 
 /**
  * @desc Because crypto's front-end compatibility library, crypto-browserify, does not support the rc4 algorithm,
