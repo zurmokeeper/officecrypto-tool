@@ -53,6 +53,12 @@ describe('Excel isEncrypted', () => {
     expect(isEncrypted).toEqual(true);
   });
 
+  it('rc4: The file is decrypted with WriteProtect set.', async () => {
+    const input = await fs.readFile(`${decryptFilePath}/rc4_pass_and_writeProtect_test.xls`);
+    const isEncrypted = officeCrypto.isEncrypted(input);
+    expect(isEncrypted).toEqual(true);
+  });
+
   it('rc4 or rc4_crypto_api: The file is not encrypted.', async () => {
     const input = await fs.readFile(`${encryptFilePath}/xls_wait_for_encrypt.xls`);
     const isEncrypted = officeCrypto.isEncrypted(input);

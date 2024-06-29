@@ -161,7 +161,13 @@ function isEncrypted(input) {
     const bof = blob.read_shift(2);
     const bofSize = blob.read_shift(2);
     blob.l = blob.l + bofSize; // -> skip BOF record
-    const filePass = blob.read_shift(2);
+    const record = blob.read_shift(2);
+    let filePass = record;
+    if (record === 134) { // 'WriteProtect': 134
+      // Skip if record is WriteProtect
+      const writeProtectSize = blob.read_shift(2);
+      filePass = blob.read_shift(2);
+    }
     if (filePass === 47) { // 'FilePass': 47,
       return true;
     }
