@@ -14,6 +14,13 @@ describe('rc4 decrypt', () => {
     // expect(200).toEqual(200);
   });
 
+  it('decrypt xls and set writeProtect success', async () => {
+    const input = await fs.readFile(`${filePath}/rc4_pass_and_writeProtect_test.xls`);
+    const output = await officeCrypto.decrypt(input, {password: '123456'});
+    await fs.writeFile(`${filePath}/rc4_and_writeProtect_out_success.xls`, output);
+    // expect(200).toEqual(200);
+  });
+
 
   it('decrypt doc success', async () => {
     const input = await fs.readFile(`${filePath}/doc_rc4_pass_test.doc`);

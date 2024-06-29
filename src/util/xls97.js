@@ -459,7 +459,14 @@ exports.decrypt = function decrypt(currCfb, blob, password, input) {
   // FilePass: https://learn.microsoft.com/en-us/openspecs/office_file_formats/ms-xls/cf9ae8d5-4e8c-40a2-95f1-3b31f16b5529?redirectedfrom=MSDN
   // If this record exists, the workbook MUST be encrypted.
 
-  const filePass = blob.read_shift(2);
+  const record = blob.read_shift(2);
+  let filePass = record;
+  if (record === 134) { // 'WriteProtect': 134
+    // Skip if record is WriteProtect
+    const writeProtectSize = blob.read_shift(2);
+    filePass = blob.read_shift(2);
+  }
+
   if (filePass !== 47) { // 'FilePass': 47,
     return input; // Not encrypted returns directly to the original buffer
   }
