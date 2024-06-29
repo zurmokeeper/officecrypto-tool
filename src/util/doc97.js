@@ -220,7 +220,11 @@ exports.decrypt = function decrypt(currCfb, blob, password, input) {
 
   const tableName = fibBase.tableName;
   const TableWorkbook = CFB.find(currCfb, tableName);
-  const tableBlob = TableWorkbook.content;
+  let tableBlob = TableWorkbook.content;
+  if (!Buffer.isBuffer(tableBlob)) {
+    tableBlob = Buffer.from(tableBlob);
+    CFB.utils.prep_blob(tableBlob, 0);
+  }
   const vMajor = tableBlob.read_shift(2);
   const vMinor = tableBlob.read_shift(2);
   const data = {};
