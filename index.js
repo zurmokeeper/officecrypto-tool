@@ -123,11 +123,13 @@ function encrypt(input, options) {
   if (options.password.length > maxFieldLength) throw new Error(`The maximum password length is ${maxFieldLength}`);
   let output;
 
-  if (options.hasOwnProperty('type') && !['standard'].includes(options.type)) {
-    throw new Error(`options.type must be ['standard']`);
+  if (options.hasOwnProperty('type') && !['standard', 'rc4'].includes(options.type)) {
+    throw new Error(`options.type must be ['standard', 'rc4']`);
   }
   if (options.type === 'standard') {
     output = ecma376Standard.encryptStandard(input, options.password);
+  } else if (options.type === 'rc4') {
+    output = xls97File.encrypt(input, options.password);
   } else {
     output = ecma376Agile.encrypt(input, options.password);
   }

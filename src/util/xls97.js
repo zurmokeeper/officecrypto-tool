@@ -1,6 +1,7 @@
 /* eslint-disable valid-jsdoc */
 
 const CFB = require('cfb');
+const crypto = require('crypto');
 
 const documentRC4 = require('../crypto/rc4');
 const documentRC4CryptoAPI = require('../crypto/rc4_cryptoapi');
@@ -613,3 +614,70 @@ function rc4Decrypt(currCfb, blob, password, data) {
 
   return output;
 }
+
+// exports.buildHeaderRC4 = function buildHeaderRC4(password) {
+/**
+ * @desc
+ */
+function buildHeaderRC4(password) {
+  // const salt = crypto.randomBytes(16);
+  const salt = Buffer.from('8a7f5b4d1321d3a6dcb7faa9e4aca05d', 'hex');
+
+  const block = 0;
+  const key = documentRC4.convertPasswordToKey(password, salt, block);
+
+  // const encryptedVerifier = crypto.randomBytes(16);
+  const encryptedVerifier = Buffer.from('bd6a0b6b4d033235704e9f096106ba9e', 'hex');
+  const encryptedVerifierHash = crypto.createHash('md5').update(encryptedVerifier).digest();
+
+  const cipher = crypto.createCipheriv('rc4', key, '');
+  const EncryptedVerifier = Buffer.concat([cipher.update(encryptedVerifier)]);
+  const EncryptedVerifierHash = Buffer.concat([cipher.update(encryptedVerifierHash), cipher.final()]);
+
+  return {Salt: salt, EncryptedVerifier, EncryptedVerifierHash};
+}
+
+/**
+ * @desc
+ */
+function buildWorkbookInfo(blob) {
+  CFB.utils.prep_blob(blob, 0);
+
+  const bof = blob.read_shift(2);
+  const bofSize = blob.read_shift(2);
+  blob.l = blob.l + bofSize; // -> skip BOF record
+
+  blob.write_shift(2, 0x002f);
+  blob.write_shift(2, 0x0036); // FilePass size (54 Byte)
+  blob.write_shift(2, 0x0001); // wEncryptionType
+  blob.write_shift(2, 0x0001); // vMajor
+  blob.write_shift(2, 0x0001); // vMinor
+
+  const {Salt, EncryptedVerifier, EncryptedVerifierHash} = buildHeaderRC4(password);
+
+  blob.write_shift(16, Salt.toString('hex'), 'hex'); // Salt
+  blob.write_shift(16, EncryptedVerifier.toString('hex'), 'hex'); // EncryptedVerifier
+  blob.write_shift(16, EncryptedVerifierHash.toString('hex'), 'hex'); // EncryptedVerifierHash
+}
+
+
+exports.encrypt = function encrypt(input, password) {
+  // Create a new CFB
+  let output = CFB.utils.cfb_new();
+
+  const saltValue = crypto.randomBytes(16);
+  const WorkbookBuffer = buildWorkbookInfo(input, password);
+
+  CFB.utils.cfb_add(output, 'Workbook', WorkbookBuffer);
+
+  // Delete the SheetJS entry that is added at initialization
+  CFB.utils.cfb_del(output, '\u0001Sh33tJ5');
+
+  // Write to a buffer and return
+  output = CFB.write(output);
+
+  // The cfb library writes to a Uint8array in the browser. Convert to a Buffer.
+  if (!Buffer.isBuffer(output)) output = Buffer.from(output);
+
+  return output;
+};

@@ -3,6 +3,8 @@ const officeCrypto = require('./index');
 const fs = require('fs').promises;
 const filePath = './tests/data/decrypt';
 
+const xls97 = require('./src/util/xls97');
+
 (async ()=>{
   // const input = await fs.readFile(`${filePath}/xor_pass_test.xls`);
   // const output = await officeCrypto.decrypt(input, {password: '123456'});
@@ -21,7 +23,13 @@ const filePath = './tests/data/decrypt';
   // const isEncrypted = officeCrypto.isEncrypted(input);
   // console.log('isEncrypted-->', isEncrypted);
 
-  const input = await fs.readFile(`${filePath}/rc4_pass_and_writeProtect_test.xls`);
+  // const input = await fs.readFile(`${filePath}/rc4_pass_and_writeProtect_test.xls`);
+  // const output = await officeCrypto.decrypt(input, {password: '123456'});
+  // await fs.writeFile(`${filePath}/rc4_and_writeProtect_out_success.xls`, output);
+
+  const input = await fs.readFile(`${filePath}/rc4_pass_test.xls`);
   const output = await officeCrypto.decrypt(input, {password: '123456'});
-  await fs.writeFile(`${filePath}/rc4_and_writeProtect_out_success.xls`, output);
+
+
+  // const data = xls97.buildHeaderRC4('123456');
 })();

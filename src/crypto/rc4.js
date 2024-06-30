@@ -7,7 +7,7 @@ const CryptoJS = require('crypto-js');
 /**
  * @desc
  */
-function convertPasswordToKey(password, salt, block) {
+const convertPasswordToKey = exports.convertPasswordToKey = function convertPasswordToKey(password, salt, block) {
   password = Buffer.from(password, 'utf16le');
   const h0 = crypto.createHash('md5').update(password).digest();
   let truncatedHash = h0.slice(0, 5);
@@ -22,43 +22,43 @@ function convertPasswordToKey(password, salt, block) {
   const hFinal = crypto.createHash('md5').update(finalBuffer).digest();
   const key = hFinal.slice(0, 128 / 8);
   return key;
-}
+};
 
 /**
  * @desc Only node.js is supported.
  * @returns
  */
-// exports.verifyPassword = function verifyPw(password, salt, encryptedVerifier, encryptedVerifierHash) {
-//   const block = 0;
-//   const key = convertPasswordToKey(password, salt, block);
-//   const cipher = crypto.createDecipheriv('rc4', key, '');
-//   const verifier = Buffer.concat([cipher.update(encryptedVerifier)]);
+exports.verifyPassword = function verifyPw(password, salt, encryptedVerifier, encryptedVerifierHash) {
+  const block = 0;
+  const key = convertPasswordToKey(password, salt, block);
+  const cipher = crypto.createDecipheriv('rc4', key, '');
+  const verifier = Buffer.concat([cipher.update(encryptedVerifier)]);
 
-//   const hash = crypto.createHash('md5').update(verifier).digest();
+  const hash = crypto.createHash('md5').update(verifier).digest();
 
-//   const verifierHash = Buffer.concat([cipher.update(encryptedVerifierHash), cipher.final()]);
+  const verifierHash = Buffer.concat([cipher.update(encryptedVerifierHash), cipher.final()]);
 
-//   return verifierHash.equals(hash);
-// };
+  return verifierHash.equals(hash);
+};
 
 /**
  * @desc Because crypto's front-end compatibility library, crypto-browserify, does not support the rc4 algorithm,
  * we have switched to crypto-js to handle the rc4 algorithm for both node.js and the browser side.
  * @returns
  */
-exports.verifyPassword = function verifyPw(password, salt, encryptedVerifier, encryptedVerifierHash) {
-  const block = 0;
-  const key = convertPasswordToKey(password, salt, block);
+// exports.verifyPassword = function verifyPw(password, salt, encryptedVerifier, encryptedVerifierHash) {
+//   const block = 0;
+//   const key = convertPasswordToKey(password, salt, block);
 
-  const cipher = CryptoJS.algo.RC4.createDecryptor(CryptoJS.lib.WordArray.create(key));
-  const verifier = cipher.finalize(CryptoJS.lib.WordArray.create(encryptedVerifier));
+//   const cipher = CryptoJS.algo.RC4.createDecryptor(CryptoJS.lib.WordArray.create(key));
+//   const verifier = cipher.finalize(CryptoJS.lib.WordArray.create(encryptedVerifier));
 
-  const hash = CryptoJS.MD5(verifier);
+//   const hash = CryptoJS.MD5(verifier);
 
-  const verifierHash = cipher.finalize(CryptoJS.lib.WordArray.create(encryptedVerifierHash));
+//   const verifierHash = cipher.finalize(CryptoJS.lib.WordArray.create(encryptedVerifierHash));
 
-  return verifierHash.toString(CryptoJS.enc.Hex) === hash.toString(CryptoJS.enc.Hex);
-};
+//   return verifierHash.toString(CryptoJS.enc.Hex) === hash.toString(CryptoJS.enc.Hex);
+// };
 
 /**
  * @desc

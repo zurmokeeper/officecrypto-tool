@@ -91,3 +91,10 @@ exports.decrypt = function decrypt(password, salt, KeySize, input, blocksize = 0
   const output = Buffer.concat(outputChunks);
   return output;
 };
+
+/**
+ * @desc
+ */
+exports.encrypt = function encrypt() {
+
+};
