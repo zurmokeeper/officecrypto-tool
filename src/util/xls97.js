@@ -640,35 +640,161 @@ function buildHeaderRC4(password) {
 /**
  * @desc
  */
-function buildWorkbookInfo(blob) {
+function buildHeaderRC4CryptoAPI(headerSize) {
+  const blob = Buffer.alloc(headerSize);
   CFB.utils.prep_blob(blob, 0);
+  blob.write_shift(4, 0x0000000c); // Flags
+  blob.write_shift(4, 0x0); // SizeExtra
+  blob.write_shift(4, 0x00006801); // AlgID
+  blob.write_shift(4, 0x00008004); // AlgIDHash
+  const KeySize = 0x00000080;
+  blob.write_shift(4, KeySize); // KeySize
+  blob.write_shift(4, 0x00000001); // ProviderType
+  blob.write_shift(4, 0x0); // reserved1
+  blob.write_shift(4, 0x0); // reserved2
+
+  const cspName = 'Microsoft Enhanced Cryptographic Provider v1.0 (Prototype)';
+  blob.write_shift(headerSize - 32, cspName, 'utf16le'); // cspName  TODO:
+
+  return {blob, KeySize};
+}
+
+
+/**
+ * @desc
+ */
+function buildRC4CryptoAPIEncryptionVerifier(size) {
+  const blob = Buffer.alloc(size);
+  CFB.utils.prep_blob(blob, 0);
+  blob.write_shift(4, 0x0000000c); // saltSize
+  blob.write_shift(16, 0x0); // Salt
+  blob.write_shift(16, 0x00006801); // EncryptedVerifier
+  blob.write_shift(4, 0x00008004); // VerifierHashSize
+  blob.write_shift(size - 40, 0x00008004); // EncryptedVerifierHash
+  return blob;
+}
+
+/**
+ * @desc
+ */
+function buildWorkbookInfo(cfb, blob, options) {
+  const {password, type} = options;
 
   const bof = blob.read_shift(2);
   const bofSize = blob.read_shift(2);
   blob.l = blob.l + bofSize; // -> skip BOF record
 
-  blob.write_shift(2, 0x002f);
+  blob.write_shift(2, 0x002f); // FilePass
   blob.write_shift(2, 0x0036); // FilePass size (54 Byte)
   blob.write_shift(2, 0x0001); // wEncryptionType
   blob.write_shift(2, 0x0001); // vMajor
   blob.write_shift(2, 0x0001); // vMinor
 
-  const {Salt, EncryptedVerifier, EncryptedVerifierHash} = buildHeaderRC4(password);
+  const data = {};
+  switch (type) {
+    case 'rc4':
+      const {Salt, EncryptedVerifier, EncryptedVerifierHash} = buildHeaderRC4(password);
 
-  blob.write_shift(16, Salt.toString('hex'), 'hex'); // Salt
-  blob.write_shift(16, EncryptedVerifier.toString('hex'), 'hex'); // EncryptedVerifier
-  blob.write_shift(16, EncryptedVerifierHash.toString('hex'), 'hex'); // EncryptedVerifierHash
+      blob.write_shift(16, Salt.toString('hex'), 'hex'); // Salt
+      blob.write_shift(16, EncryptedVerifier.toString('hex'), 'hex'); // EncryptedVerifier
+      blob.write_shift(16, EncryptedVerifierHash.toString('hex'), 'hex'); // EncryptedVerifierHash
+
+      data.salt = Salt;
+      data.type = 'rc4';
+      break;
+    case 'rc4_crypto_api':
+
+      blob.write_shift(2, 0x002f); // FilePass
+      const filePassSize = 0x00c8;
+      blob.write_shift(2, filePassSize); // FilePass size (200 Byte)  TODO:
+      blob.write_shift(2, 0x0001); // wEncryptionType
+      blob.write_shift(2, 0x0004); // vMajor
+      blob.write_shift(2, 0x0002); // vMinor
+
+      blob.write_shift(4, 0x0000000c); // Flags  12
+      const HeaderSize = 0x0000007e;
+      blob.write_shift(4, HeaderSize); // HeaderSize   126
+
+      const {blob: headerBlob, KeySize} = buildHeaderRC4CryptoAPI(HeaderSize);
+
+      blob.write_shift(HeaderSize, headerBlob.toString('hex'), 'hex'); // EncryptionHeader
+
+      const encryptionVerifierSize = filePassSize - 14 - HeaderSize;
+      const verifierBlob = buildRC4CryptoAPIEncryptionVerifier(encryptionVerifierSize);
+
+      blob.write_shift(encryptionVerifierSize, verifierBlob.toString('hex'), 'hex'); // EncryptionVerifier
+
+      data.salt = Salt;
+      data.type = 'rc4_crypto_api';
+      data.keySize = KeySize;
+      break;
+    default:
+      break;
+  }
+
+  const output = rc4Encrypt(cfb, blob, password, data);
+  return output;
 }
 
 
-exports.encrypt = function encrypt(input, password) {
-  // Create a new CFB
+/**
+ * @desc
+ */
+function rc4Encrypt(currCfb, blob, password, data) {
+  let buf = [];
+  const plainBuf = [];
+  blob.l = 0; // Reset Offset
+
+  const dataList = iterRecord(blob);
+  for (const {header, num, size, record} of dataList) {
+    if (num === recordNameNum.FilePass) {
+      plainBuf.push(...header, ...record);
+      buf.push(Buffer.alloc(4 + size));
+    } else if ([
+      recordNameNum.BOF,
+      recordNameNum.FilePass,
+      recordNameNum.UsrExcl,
+      recordNameNum.FileLock,
+      recordNameNum.InterfaceHdr,
+      recordNameNum.RRDInfo,
+      recordNameNum.RRDHead,
+    ].includes(num)) {
+      plainBuf.push(...header, ...record);
+      buf.push(Buffer.alloc(4 + size));
+    // The lbPlyPos field of the BoundSheet8 record (section 2.4.28) MUST NOT be encrypted.
+    } else if (num === recordNameNum.BoundSheet8) {
+      const lbPlyPos = record.slice(0, 4);
+      const restSize = size - 4;
+      plainBuf.push(...header, ...lbPlyPos, ...Array(restSize).fill(-2));
+      buf.push(Buffer.concat([Buffer.alloc(4), Buffer.alloc(4), record.slice(4)]));
+    } else {
+      plainBuf.push(...header, ...Array(size).fill(-1));
+      buf.push(Buffer.concat([Buffer.alloc(4), record]));
+    }
+  }
+
+  buf = Buffer.concat(buf);
+
+  const {salt, keySize, type} = data;
+  let enc;
+  const blocksize = 1024;
+  if (type === 'rc4') {
+    enc = documentRC4.encrypt(password, salt, buf, blocksize);
+  } else if (type === 'rc4_crypto_api') {
+    // dec = documentRC4CryptoAPI.decrypt(password, salt, keySize, buf, blocksize);
+  } else {
+    // dec = documentXOR.decrypt(password, buf, plainBuf);
+  }
+
+  for (let i = 0; i < plainBuf.length; i++) {
+    const c = plainBuf[i];
+    if (c !== -1 && c !== -2) {
+      enc.writeUInt8(c, i);
+    }
+  }
+
   let output = CFB.utils.cfb_new();
-
-  const saltValue = crypto.randomBytes(16);
-  const WorkbookBuffer = buildWorkbookInfo(input, password);
-
-  CFB.utils.cfb_add(output, 'Workbook', WorkbookBuffer);
+  CFB.utils.cfb_add(output, 'Workbook', enc);
 
   // Delete the SheetJS entry that is added at initialization
   CFB.utils.cfb_del(output, '\u0001Sh33tJ5');
@@ -680,4 +806,9 @@ exports.encrypt = function encrypt(input, password) {
   if (!Buffer.isBuffer(output)) output = Buffer.from(output);
 
   return output;
+}
+
+exports.encrypt = function encrypt(cfb, input, options) {
+  const WorkbookBuffer = buildWorkbookInfo(cfb, input, options);
+  return WorkbookBuffer;
 };

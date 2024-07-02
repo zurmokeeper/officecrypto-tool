@@ -126,13 +126,28 @@ function encrypt(input, options) {
   if (options.hasOwnProperty('type') && !['standard', 'rc4'].includes(options.type)) {
     throw new Error(`options.type must be ['standard', 'rc4']`);
   }
-  if (options.type === 'standard') {
-    output = ecma376Standard.encryptStandard(input, options.password);
-  } else if (options.type === 'rc4') {
-    output = xls97File.encrypt(input, options.password);
-  } else {
-    output = ecma376Agile.encrypt(input, options.password);
+
+  switch (options.type) {
+    case 'standard':
+      output = ecma376Standard.encryptStandard(input, options.password);
+      break;
+    case 'rc4':
+      const cfb = CFB.read(input, {type: 'buffer'});
+      const Workbook = CFB.find(cfb, 'Workbook');
+      if (Workbook) {
+        let workbookContent = Workbook.content;
+        if (!Buffer.isBuffer(workbookContent)) {
+          workbookContent = Buffer.from(workbookContent);
+          CFB.utils.prep_blob(workbookContent, 0);
+        }
+        output = xls97File.encrypt(cfb, workbookContent, options);
+      }
+      break;
+    default:
+      output = ecma376Agile.encrypt(input, options.password);
+      break;
   }
+
   return output;
 }
 

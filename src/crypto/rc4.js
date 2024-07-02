@@ -98,3 +98,43 @@ exports.decrypt = function decrypt(password, salt, input, blocksize = 0x200) {
   const output = Buffer.concat(outputChunks);
   return output;
 };
+
+
+/**
+ * @desc
+ */
+exports.encrypt = function encrypt(password, salt, input, blocksize = 0x200) {
+  let start = 0;
+  let end = 0;
+  let block = 0;
+  let key = convertPasswordToKey(password, salt, block);
+
+  const outputChunks = [];
+  while (end < input.length) {
+    start = end;
+    end = start + blocksize;
+    if (end > input.length) end = input.length;
+
+    // Grab the next chunk
+    const inputChunk = input.slice(start, end);
+
+    // Only node.js is supported.
+    // Encrypt/decrypt the chunk and add it to the array
+    const cipher = crypto.createCipheriv('rc4', key, '');
+    const outputChunk = Buffer.concat([cipher.update(inputChunk), cipher.final()]);
+
+    // Supports both node.js and browsers.
+    // const cipher = CryptoJS.algo.RC4.createDecryptor(CryptoJS.lib.WordArray.create(key));
+    // let outputChunk = cipher.finalize(CryptoJS.lib.WordArray.create(inputChunk));
+    // outputChunk = Buffer.from(outputChunk.toString(CryptoJS.enc.Hex), 'hex');
+
+    outputChunks.push(outputChunk);
+
+    block += 1;
+    key = convertPasswordToKey(password, salt, block);
+  }
+
+  // Concat all of the output chunks.
+  const output = Buffer.concat(outputChunks);
+  return output;
+};

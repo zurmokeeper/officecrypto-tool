@@ -27,9 +27,15 @@ const xls97 = require('./src/util/xls97');
   // const output = await officeCrypto.decrypt(input, {password: '123456'});
   // await fs.writeFile(`${filePath}/rc4_and_writeProtect_out_success.xls`, output);
 
-  const input = await fs.readFile(`${filePath}/rc4_pass_test.xls`);
-  const output = await officeCrypto.decrypt(input, {password: '123456'});
+  // const input = await fs.readFile(`${filePath}/rc4_pass_test.xls`);
+  // const output = await officeCrypto.decrypt(input, {password: '123456'});
 
 
   // const data = xls97.buildHeaderRC4('123456');
+  // const input = await fs.readFile(`${filePath}/rc4_out_success.xls`);
+  // const output = officeCrypto.encrypt(input, {password: '123456', type: 'rc4'});
+  // await fs.writeFile(`${filePath}/rc4_test_test.xls`, output);
+
+  const input = await fs.readFile(`${filePath}/rc4_cryptoapi_pass_test.xls`);
+  const output = await officeCrypto.decrypt(input, {password: '123456'});
 })();
