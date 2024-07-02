@@ -21,7 +21,7 @@ declare namespace officeCrypto{
          * @desc Encryption Type
          * optional
          */
-        type?: 'standard';
+        type?: 'standard' | 'rc4' | 'rc4_crypto_api';
     }
 
     /**

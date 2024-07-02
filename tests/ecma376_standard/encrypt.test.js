@@ -15,7 +15,7 @@ describe('ecma376_standard encrypt', () => {
     // expect(200).toEqual(200);
   });
 
-  it(`options.type must be ['standard'], options.type= ''`, async () => {
+  it(`options.type must be ['standard', 'rc4', 'rc4_crypto_api'], options.type= ''`, async () => {
     const test = function test() {
       return async function() {
         const input = await fs.readFile(`${filePath}/standard_wait_for_encrypt.xlsx`);
@@ -23,10 +23,10 @@ describe('ecma376_standard encrypt', () => {
         const output = officeCrypto.encrypt(input, {password: '123456', type: ''});
       };
     };
-    await expect(test()).rejects.toThrowError(new Error( `options.type must be ['standard']` ));
+    await expect(test()).rejects.toThrowError(new Error( `options.type must be ['standard', 'rc4', 'rc4_crypto_api']` ));
   });
 
-  it(`options.type must be ['standard'], options.type= 'xx'`, async () => {
+  it(`options.type must be ['standard', 'rc4', 'rc4_crypto_api'], options.type= 'xx'`, async () => {
     const test = function test() {
       return async function() {
         const input = await fs.readFile(`${filePath}/standard_wait_for_encrypt.xlsx`);
@@ -34,6 +34,6 @@ describe('ecma376_standard encrypt', () => {
         const output = officeCrypto.encrypt(input, {password: '123456', type: 'xx'});
       };
     };
-    await expect(test()).rejects.toThrowError(new Error( `options.type must be ['standard']` ));
+    await expect(test()).rejects.toThrowError(new Error( `options.type must be ['standard', 'rc4', 'rc4_crypto_api']` ));
   });
 });
