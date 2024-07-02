@@ -32,10 +32,16 @@ const xls97 = require('./src/util/xls97');
 
 
   // const data = xls97.buildHeaderRC4('123456');
-  // const input = await fs.readFile(`${filePath}/rc4_out_success.xls`);
-  // const output = officeCrypto.encrypt(input, {password: '123456', type: 'rc4'});
-  // await fs.writeFile(`${filePath}/rc4_test_test.xls`, output);
+  const input = await fs.readFile(`${filePath}/rc4_out_success.xls`);
+  const output = officeCrypto.encrypt(input, {password: '123456', type: 'rc4'});
+  await fs.writeFile(`${filePath}/rc4_test_test.xls`, output);
 
-  const input = await fs.readFile(`${filePath}/rc4_cryptoapi_pass_test.xls`);
-  const output = await officeCrypto.decrypt(input, {password: '123456'});
+  // const input = await fs.readFile(`${filePath}/rc4_cryptoapi_pass_test.xls`);
+  // const input = await fs.readFile(`${filePath}/test-case-format.xls`);
+  // const input = await fs.readFile(`${filePath}/Book1.1.xls`);
+  // const output = await officeCrypto.decrypt(input, {password: '12345678'});
+
+  // const input = await fs.readFile(`${filePath}/rc4_cryptoapi_out_success.xls`);
+  // const output = officeCrypto.encrypt(input, {password: '123456', type: 'rc4_crypto_api'});
+  // await fs.writeFile(`${filePath}/rc4_cryptoapi_out_test_test.xls`, output);
 })();

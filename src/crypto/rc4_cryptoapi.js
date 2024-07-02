@@ -6,7 +6,7 @@ const CryptoJS = require('crypto-js');
 /**
  * @desc
  */
-function convertPasswordToKey(password, salt, keyLength, block, algIdHash = 0x00008004) {
+const convertPasswordToKey = exports.convertPasswordToKey = function convertPasswordToKey(password, salt, keyLength, block, algIdHash = 0x00008004) {
   // https://learn.microsoft.com/en-us/openspecs/office_file_formats/ms-offcrypto/12ec1195-af2d-44e6-8c73-003e79e635d5?redirectedfrom=MSDN
   password = Buffer.from(password, 'utf16le');
   const h0 = crypto.createHash('sha1').update(Buffer.concat([salt, password])).digest();
@@ -20,7 +20,7 @@ function convertPasswordToKey(password, salt, keyLength, block, algIdHash = 0x00
     key = hFinal.slice(0, keyLength / 8);
   }
   return key;
-}
+};
 
 /**
  * @desc Only node.js is supported.
@@ -95,6 +95,37 @@ exports.decrypt = function decrypt(password, salt, KeySize, input, blocksize = 0
 /**
  * @desc
  */
-exports.encrypt = function encrypt() {
+exports.encrypt = function encrypt(password, salt, KeySize, input, blocksize = 0x200, block = 0) {
+  let start = 0;
+  let end = 0;
+  let key = convertPasswordToKey(password, salt, KeySize, block);
 
+  const outputChunks = [];
+  while (end < input.length) {
+    start = end;
+    end = start + blocksize;
+    if (end > input.length) end = input.length;
+
+    // Grab the next chunk
+    const inputChunk = input.slice(start, end);
+
+    // Only node.js is supported.
+    // Encrypt/decrypt the chunk and add it to the array
+    // const cipher = crypto.createCipheriv('rc4', key, '');
+    // const outputChunk = Buffer.concat([cipher.update(inputChunk), cipher.final()]);
+
+    // Supports both node.js and browsers.
+    const cipher = CryptoJS.algo.RC4.createEncryptor(CryptoJS.lib.WordArray.create(key));
+    let outputChunk = cipher.finalize(CryptoJS.lib.WordArray.create(inputChunk));
+    outputChunk = Buffer.from(outputChunk.toString(CryptoJS.enc.Hex), 'hex');
+
+    outputChunks.push(outputChunk);
+
+    block += 1;
+    key = convertPasswordToKey(password, salt, KeySize, block);
+  }
+
+  // Concat all of the output chunks.
+  const output = Buffer.concat(outputChunks);
+  return output;
 };

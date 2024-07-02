@@ -615,19 +615,19 @@ function rc4Decrypt(currCfb, blob, password, data) {
   return output;
 }
 
-// exports.buildHeaderRC4 = function buildHeaderRC4(password) {
+
 /**
  * @desc
  */
 function buildHeaderRC4(password) {
-  // const salt = crypto.randomBytes(16);
-  const salt = Buffer.from('8a7f5b4d1321d3a6dcb7faa9e4aca05d', 'hex');
+  const salt = crypto.randomBytes(16);
+  // const salt = Buffer.from('8a7f5b4d1321d3a6dcb7faa9e4aca05d', 'hex');
 
   const block = 0;
   const key = documentRC4.convertPasswordToKey(password, salt, block);
 
-  // const encryptedVerifier = crypto.randomBytes(16);
-  const encryptedVerifier = Buffer.from('bd6a0b6b4d033235704e9f096106ba9e', 'hex');
+  const encryptedVerifier = crypto.randomBytes(16);
+  // const encryptedVerifier = Buffer.from('bd6a0b6b4d033235704e9f096106ba9e', 'hex');
   const encryptedVerifierHash = crypto.createHash('md5').update(encryptedVerifier).digest();
 
   const cipher = crypto.createCipheriv('rc4', key, '');
@@ -663,15 +663,26 @@ function buildHeaderRC4CryptoAPI(headerSize) {
 /**
  * @desc
  */
-function buildRC4CryptoAPIEncryptionVerifier(size) {
+function buildRC4CryptoAPIEncryptionVerifier(options, size, keySize, block = 0) {
   const blob = Buffer.alloc(size);
   CFB.utils.prep_blob(blob, 0);
-  blob.write_shift(4, 0x0000000c); // saltSize
-  blob.write_shift(16, 0x0); // Salt
-  blob.write_shift(16, 0x00006801); // EncryptedVerifier
-  blob.write_shift(4, 0x00008004); // VerifierHashSize
-  blob.write_shift(size - 40, 0x00008004); // EncryptedVerifierHash
-  return blob;
+
+  const salt = crypto.randomBytes(16);
+  const key = documentRC4CryptoAPI.convertPasswordToKey(options.password, salt, keySize, block);
+
+  const encryptedVerifier = crypto.randomBytes(16);
+  const encryptedVerifierHash = crypto.createHash('sha1').update(encryptedVerifier).digest();
+
+  const cipher = crypto.createCipheriv('rc4', key, '');
+  const EncryptedVerifier = Buffer.concat([cipher.update(encryptedVerifier)]);
+  const EncryptedVerifierHash = Buffer.concat([cipher.update(encryptedVerifierHash), cipher.final()]);
+
+  blob.write_shift(4, 0x10); // saltSize
+  blob.write_shift(16, salt.toString('hex'), 'hex'); // Salt
+  blob.write_shift(16, EncryptedVerifier.toString('hex'), 'hex'); // EncryptedVerifier
+  blob.write_shift(4, size - 40); // VerifierHashSize
+  blob.write_shift(size - 40, EncryptedVerifierHash.toString('hex'), 'hex'); // EncryptedVerifierHash  20 Byte
+  return {blob, Salt: salt};
 }
 
 /**
@@ -685,14 +696,14 @@ function buildWorkbookInfo(cfb, blob, options) {
   blob.l = blob.l + bofSize; // -> skip BOF record
 
   blob.write_shift(2, 0x002f); // FilePass
-  blob.write_shift(2, 0x0036); // FilePass size (54 Byte)
-  blob.write_shift(2, 0x0001); // wEncryptionType
-  blob.write_shift(2, 0x0001); // vMajor
-  blob.write_shift(2, 0x0001); // vMinor
 
   const data = {};
   switch (type) {
     case 'rc4':
+      blob.write_shift(2, 0x0036); // FilePass size (54 Byte)
+      blob.write_shift(2, 0x0001); // wEncryptionType
+      blob.write_shift(2, 0x0001); // vMajor
+      blob.write_shift(2, 0x0001); // vMinor
       const {Salt, EncryptedVerifier, EncryptedVerifierHash} = buildHeaderRC4(password);
 
       blob.write_shift(16, Salt.toString('hex'), 'hex'); // Salt
@@ -703,10 +714,8 @@ function buildWorkbookInfo(cfb, blob, options) {
       data.type = 'rc4';
       break;
     case 'rc4_crypto_api':
-
-      blob.write_shift(2, 0x002f); // FilePass
       const filePassSize = 0x00c8;
-      blob.write_shift(2, filePassSize); // FilePass size (200 Byte)  TODO:
+      blob.write_shift(2, filePassSize); // FilePass size (200 Byte)
       blob.write_shift(2, 0x0001); // wEncryptionType
       blob.write_shift(2, 0x0004); // vMajor
       blob.write_shift(2, 0x0002); // vMinor
@@ -719,16 +728,17 @@ function buildWorkbookInfo(cfb, blob, options) {
 
       blob.write_shift(HeaderSize, headerBlob.toString('hex'), 'hex'); // EncryptionHeader
 
-      const encryptionVerifierSize = filePassSize - 14 - HeaderSize;
-      const verifierBlob = buildRC4CryptoAPIEncryptionVerifier(encryptionVerifierSize);
+      const encryptionVerifierSize = filePassSize - 14 - HeaderSize; // 200-14-126 = 60 Byte
+      const {blob: verifierBlob, Salt: salt1} = buildRC4CryptoAPIEncryptionVerifier(options, encryptionVerifierSize, KeySize);
 
       blob.write_shift(encryptionVerifierSize, verifierBlob.toString('hex'), 'hex'); // EncryptionVerifier
 
-      data.salt = Salt;
+      data.salt = salt1;
       data.type = 'rc4_crypto_api';
       data.keySize = KeySize;
       break;
     default:
+      throw new Error('Unsupported encryption algorithms');
       break;
   }
 
@@ -781,9 +791,9 @@ function rc4Encrypt(currCfb, blob, password, data) {
   if (type === 'rc4') {
     enc = documentRC4.encrypt(password, salt, buf, blocksize);
   } else if (type === 'rc4_crypto_api') {
-    // dec = documentRC4CryptoAPI.decrypt(password, salt, keySize, buf, blocksize);
+    enc = documentRC4CryptoAPI.encrypt(password, salt, keySize, buf, blocksize);
   } else {
-    // dec = documentXOR.decrypt(password, buf, plainBuf);
+    // enc = documentXOR.encrypt(password, buf, plainBuf);
   }
 
   for (let i = 0; i < plainBuf.length; i++) {
@@ -795,6 +805,25 @@ function rc4Encrypt(currCfb, blob, password, data) {
 
   let output = CFB.utils.cfb_new();
   CFB.utils.cfb_add(output, 'Workbook', enc);
+
+  const ETExtData = CFB.find(currCfb, 'ETExtData');
+  if (ETExtData) {
+    CFB.utils.cfb_add(output, 'ETExtData', ETExtData.content);
+  }
+  const CompObj = CFB.find(currCfb, '\u0001CompObj');
+  if (CompObj) {
+    CFB.utils.cfb_add(output, '\u0001CompObj', CompObj.content);
+  }
+
+  const SummaryInformation = CFB.find(currCfb, '\u0005SummaryInformation');
+  if (SummaryInformation) {
+    CFB.utils.cfb_add(output, '\u0005SummaryInformation', SummaryInformation.content);
+  }
+
+  const DocumentSummaryInformation = CFB.find(currCfb, '\u0005DocumentSummaryInformation');
+  if (DocumentSummaryInformation) {
+    CFB.utils.cfb_add(output, '\u0005DocumentSummaryInformation', DocumentSummaryInformation.content);
+  }
 
   // Delete the SheetJS entry that is added at initialization
   CFB.utils.cfb_del(output, '\u0001Sh33tJ5');

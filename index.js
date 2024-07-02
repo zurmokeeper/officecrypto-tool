@@ -123,8 +123,8 @@ function encrypt(input, options) {
   if (options.password.length > maxFieldLength) throw new Error(`The maximum password length is ${maxFieldLength}`);
   let output;
 
-  if (options.hasOwnProperty('type') && !['standard', 'rc4'].includes(options.type)) {
-    throw new Error(`options.type must be ['standard', 'rc4']`);
+  if (options.hasOwnProperty('type') && !['standard', 'rc4', 'rc4_crypto_api'].includes(options.type)) {
+    throw new Error(`options.type must be ['standard', 'rc4', 'rc4_crypto_api']`);
   }
 
   switch (options.type) {
@@ -132,6 +132,7 @@ function encrypt(input, options) {
       output = ecma376Standard.encryptStandard(input, options.password);
       break;
     case 'rc4':
+    case 'rc4_crypto_api':
       const cfb = CFB.read(input, {type: 'buffer'});
       const Workbook = CFB.find(cfb, 'Workbook');
       if (Workbook) {
