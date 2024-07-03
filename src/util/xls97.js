@@ -2,6 +2,7 @@
 
 const CFB = require('cfb');
 const crypto = require('crypto');
+const CryptoJS = require('crypto-js');
 
 const documentRC4 = require('../crypto/rc4');
 const documentRC4CryptoAPI = require('../crypto/rc4_cryptoapi');
@@ -617,22 +618,44 @@ function rc4Decrypt(currCfb, blob, password, data) {
 
 
 /**
- * @desc
+ * @desc Only node.js is supported.
+ */
+// function buildHeaderRC4(password) {
+//   const salt = crypto.randomBytes(16);
+
+//   const block = 0;
+//   const key = documentRC4.convertPasswordToKey(password, salt, block);
+
+//   const encryptedVerifier = crypto.randomBytes(16);
+//   const encryptedVerifierHash = crypto.createHash('md5').update(encryptedVerifier).digest();
+
+//   const cipher = crypto.createCipheriv('rc4', key, '');
+//   const EncryptedVerifier = Buffer.concat([cipher.update(encryptedVerifier)]);
+//   const EncryptedVerifierHash = Buffer.concat([cipher.update(encryptedVerifierHash), cipher.final()]);
+
+//   return {Salt: salt, EncryptedVerifier, EncryptedVerifierHash};
+// }
+
+/**
+ * @desc Because crypto's front-end compatibility library, crypto-browserify, does not support the rc4 algorithm,
+ * we have switched to crypto-js to handle the rc4 algorithm for both node.js and the browser side.
+ * @returns
  */
 function buildHeaderRC4(password) {
   const salt = crypto.randomBytes(16);
-  // const salt = Buffer.from('8a7f5b4d1321d3a6dcb7faa9e4aca05d', 'hex');
 
   const block = 0;
   const key = documentRC4.convertPasswordToKey(password, salt, block);
 
   const encryptedVerifier = crypto.randomBytes(16);
-  // const encryptedVerifier = Buffer.from('bd6a0b6b4d033235704e9f096106ba9e', 'hex');
   const encryptedVerifierHash = crypto.createHash('md5').update(encryptedVerifier).digest();
 
-  const cipher = crypto.createCipheriv('rc4', key, '');
-  const EncryptedVerifier = Buffer.concat([cipher.update(encryptedVerifier)]);
-  const EncryptedVerifierHash = Buffer.concat([cipher.update(encryptedVerifierHash), cipher.final()]);
+  const cipher = CryptoJS.algo.RC4.createEncryptor(CryptoJS.lib.WordArray.create(key));
+  let EncryptedVerifier = cipher.finalize(CryptoJS.lib.WordArray.create(encryptedVerifier));
+  let EncryptedVerifierHash = cipher.finalize(CryptoJS.lib.WordArray.create(encryptedVerifierHash));
+
+  EncryptedVerifier = EncryptedVerifier.toString(CryptoJS.enc.Hex);
+  EncryptedVerifierHash = EncryptedVerifierHash.toString(CryptoJS.enc.Hex);
 
   return {Salt: salt, EncryptedVerifier, EncryptedVerifierHash};
 }
@@ -663,6 +686,31 @@ function buildHeaderRC4CryptoAPI(headerSize) {
 /**
  * @desc
  */
+// function buildRC4CryptoAPIEncryptionVerifier(options, size, keySize, block = 0) {
+//   const blob = Buffer.alloc(size);
+//   CFB.utils.prep_blob(blob, 0);
+
+//   const salt = crypto.randomBytes(16);
+//   const key = documentRC4CryptoAPI.convertPasswordToKey(options.password, salt, keySize, block);
+
+//   const encryptedVerifier = crypto.randomBytes(16);
+//   const encryptedVerifierHash = crypto.createHash('sha1').update(encryptedVerifier).digest();
+
+//   const cipher = crypto.createCipheriv('rc4', key, '');
+//   const EncryptedVerifier = Buffer.concat([cipher.update(encryptedVerifier)]);
+//   const EncryptedVerifierHash = Buffer.concat([cipher.update(encryptedVerifierHash), cipher.final()]);
+
+//   blob.write_shift(4, 0x10); // saltSize
+//   blob.write_shift(16, salt.toString('hex'), 'hex'); // Salt
+//   blob.write_shift(16, EncryptedVerifier.toString('hex'), 'hex'); // EncryptedVerifier
+//   blob.write_shift(4, size - 40); // VerifierHashSize
+//   blob.write_shift(size - 40, EncryptedVerifierHash.toString('hex'), 'hex'); // EncryptedVerifierHash  20 Byte
+//   return {blob, Salt: salt};
+// }
+
+/**
+ * @desc
+ */
 function buildRC4CryptoAPIEncryptionVerifier(options, size, keySize, block = 0) {
   const blob = Buffer.alloc(size);
   CFB.utils.prep_blob(blob, 0);
@@ -673,9 +721,12 @@ function buildRC4CryptoAPIEncryptionVerifier(options, size, keySize, block = 0) 
   const encryptedVerifier = crypto.randomBytes(16);
   const encryptedVerifierHash = crypto.createHash('sha1').update(encryptedVerifier).digest();
 
-  const cipher = crypto.createCipheriv('rc4', key, '');
-  const EncryptedVerifier = Buffer.concat([cipher.update(encryptedVerifier)]);
-  const EncryptedVerifierHash = Buffer.concat([cipher.update(encryptedVerifierHash), cipher.final()]);
+  const cipher = CryptoJS.algo.RC4.createEncryptor(CryptoJS.lib.WordArray.create(key));
+  let EncryptedVerifier = cipher.finalize(CryptoJS.lib.WordArray.create(encryptedVerifier));
+  let EncryptedVerifierHash = cipher.finalize(CryptoJS.lib.WordArray.create(encryptedVerifierHash));
+
+  EncryptedVerifier = EncryptedVerifier.toString(CryptoJS.enc.Hex);
+  EncryptedVerifierHash = EncryptedVerifierHash.toString(CryptoJS.enc.Hex);
 
   blob.write_shift(4, 0x10); // saltSize
   blob.write_shift(16, salt.toString('hex'), 'hex'); // Salt
