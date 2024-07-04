@@ -728,54 +728,102 @@ function buildRC4CryptoAPIEncryptionVerifier(options, size, keySize, block = 0) 
   EncryptedVerifier = EncryptedVerifier.toString(CryptoJS.enc.Hex);
   EncryptedVerifierHash = EncryptedVerifierHash.toString(CryptoJS.enc.Hex);
 
-  EncryptedVerifier = Buffer.from(EncryptedVerifier, 'hex');
-  EncryptedVerifierHash = Buffer.from(EncryptedVerifierHash, 'hex');
+  // EncryptedVerifier = Buffer.from(EncryptedVerifier, 'hex');
+  // EncryptedVerifierHash = Buffer.from(EncryptedVerifierHash, 'hex');
 
   blob.write_shift(4, 0x10); // saltSize
   blob.write_shift(16, salt.toString('hex'), 'hex'); // Salt
-  blob.write_shift(16, EncryptedVerifier.toString('hex'), 'hex'); // EncryptedVerifier
-  // blob.write_shift(16, EncryptedVerifier, 'hex'); // EncryptedVerifier
+  // blob.write_shift(16, EncryptedVerifier.toString('hex'), 'hex'); // EncryptedVerifier
+  blob.write_shift(16, EncryptedVerifier, 'hex'); // EncryptedVerifier
   blob.write_shift(4, size - 40); // VerifierHashSize
-  blob.write_shift(size - 40, EncryptedVerifierHash.toString('hex'), 'hex'); // EncryptedVerifierHash  20 Byte
-  // blob.write_shift(size - 40, EncryptedVerifierHash, 'hex'); // EncryptedVerifierHash  20 Byte
+  // blob.write_shift(size - 40, EncryptedVerifierHash.toString('hex'), 'hex'); // EncryptedVerifierHash  20 Byte
+  blob.write_shift(size - 40, EncryptedVerifierHash, 'hex'); // EncryptedVerifierHash  20 Byte
   return {blob, Salt: salt};
 }
+
 
 /**
  * @desc
  */
-function buildWorkbookInfo2(cfb, blob, options) {
+function buildWorkbookInfo3(cfb, blob, options) {
   const {password, type} = options;
-
-  const newBlob = Buffer.alloc(blob.byteLength + 58);
-
-  CFB.utils.prep_blob(newBlob, 0);
+  if (!Buffer.isBuffer(blob)) blob = Buffer.from(blob);
 
   const bof = blob.read_shift(2);
   const bofSize = blob.read_shift(2);
   blob.l = blob.l + bofSize; // -> skip BOF record
 
+  let filePassRecordLength = 0;
+  switch (type) {
+    case 'rc4':
+      filePassRecordLength = 2 + 2 + 54; // 58Byte
+      break;
+    case 'rc4_crypto_api':
+      filePassRecordLength = 2 + 2 + 200; // 204Byte
+      break;
+    default:
+      break;
+  }
+
+  const newBlob = Buffer.alloc(blob.byteLength + filePassRecordLength);
+  CFB.utils.prep_blob(newBlob, 0);
+
   blob.copy(newBlob, 0, 0, blob.l);
 
   newBlob.l = blob.l;
   newBlob.write_shift(2, 0x002f); // FilePass
-  newBlob.write_shift(2, 0x0036); // FilePass size (54 Byte)
-  newBlob.write_shift(2, 0x0001); // wEncryptionType
-  newBlob.write_shift(2, 0x0001); // vMajor
-  newBlob.write_shift(2, 0x0001); // vMinor
-  const {Salt, EncryptedVerifier, EncryptedVerifierHash} = buildHeaderRC4(password);
 
-  newBlob.write_shift(16, Salt.toString('hex'), 'hex'); // Salt
-  // blob.write_shift(16, EncryptedVerifier.toString('hex'), 'hex'); // EncryptedVerifier
-  // blob.write_shift(16, EncryptedVerifierHash.toString('hex'), 'hex'); // EncryptedVerifierHash
-
-  newBlob.write_shift(16, EncryptedVerifier, 'hex'); // EncryptedVerifier
-  newBlob.write_shift(16, EncryptedVerifierHash, 'hex'); // EncryptedVerifierHash
-
-  blob.copy(newBlob, 58 + 20, blob.l, blob.byteLength);
   const data = {};
-  data.salt = Salt;
-  data.type = 'rc4';
+  switch (type) {
+    case 'rc4':
+      newBlob.write_shift(2, 0x0036); // FilePass size (54 Byte)
+      newBlob.write_shift(2, 0x0001); // wEncryptionType
+      newBlob.write_shift(2, 0x0001); // vMajor
+      newBlob.write_shift(2, 0x0001); // vMinor
+      // const {Salt, EncryptedVerifier, EncryptedVerifierHash} = buildHeaderRC4(password);
+
+      const Salt = Buffer.from('0ae902d51faf8b9f02ffca00f30d9c70', 'hex');
+      const EncryptedVerifier = '0ad7aea0d0abeb56a5190e6e1ba5e3c0';
+      const EncryptedVerifierHash = '24b3058a2fdd4ebe86eb2b754514095f';
+
+      newBlob.write_shift(16, Salt.toString('hex'), 'hex'); // Salt
+      // blob.write_shift(16, EncryptedVerifier.toString('hex'), 'hex'); // EncryptedVerifier
+      // blob.write_shift(16, EncryptedVerifierHash.toString('hex'), 'hex'); // EncryptedVerifierHash
+
+      newBlob.write_shift(16, EncryptedVerifier, 'hex'); // EncryptedVerifier
+      newBlob.write_shift(16, EncryptedVerifierHash, 'hex'); // EncryptedVerifierHash
+
+      data.salt = Salt;
+      data.type = 'rc4';
+      break;
+    case 'rc4_crypto_api':
+      const filePassSize = 0x00c8;
+      newBlob.write_shift(2, filePassSize); // FilePass size (200 Byte)
+      newBlob.write_shift(2, 0x0001); // wEncryptionType
+      newBlob.write_shift(2, 0x0004); // vMajor
+      newBlob.write_shift(2, 0x0002); // vMinor
+
+      newBlob.write_shift(4, 0x0000000c); // Flags  12
+      const HeaderSize = 0x0000007e;
+      newBlob.write_shift(4, HeaderSize); // HeaderSize   126
+
+      const {blob: headerBlob, KeySize} = buildHeaderRC4CryptoAPI(HeaderSize);
+
+      newBlob.write_shift(HeaderSize, headerBlob.toString('hex'), 'hex'); // EncryptionHeader
+
+      const encryptionVerifierSize = filePassSize - 14 - HeaderSize; // 200-14-126 = 60 Byte
+      const {blob: verifierBlob, Salt: salt1} = buildRC4CryptoAPIEncryptionVerifier(options, encryptionVerifierSize, KeySize);
+
+      newBlob.write_shift(encryptionVerifierSize, verifierBlob.toString('hex'), 'hex'); // EncryptionVerifier
+
+      data.salt = salt1;
+      data.type = 'rc4_crypto_api';
+      data.keySize = KeySize;
+      break;
+    default:
+      throw new Error('Unsupported encryption algorithms');
+  }
+  blob.copy(newBlob, filePassRecordLength + blob.l, blob.l, blob.byteLength);
 
   const output = rc4Encrypt(cfb, newBlob, password, data);
   return output;
@@ -940,6 +988,7 @@ function rc4Encrypt(currCfb, blob, password, data) {
 
 exports.encrypt = function encrypt(cfb, input, options) {
   // const WorkbookBuffer = buildWorkbookInfo(cfb, input, options);
-  const WorkbookBuffer = buildWorkbookInfo2(cfb, input, options);
+  // const WorkbookBuffer = buildWorkbookInfo2(cfb, input, options);
+  const WorkbookBuffer = buildWorkbookInfo3(cfb, input, options);
   return WorkbookBuffer;
 };

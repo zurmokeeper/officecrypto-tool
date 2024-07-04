@@ -2,6 +2,7 @@
 const officeCrypto = require('./index');
 const fs = require('fs').promises;
 let filePath = './tests/data/decrypt';
+const CFB = require('cfb');
 
 const xls97 = require('./src/util/xls97');
 
@@ -33,8 +34,9 @@ const xls97 = require('./src/util/xls97');
 
   // const data = xls97.buildHeaderRC4('123456');
   // const input = await fs.readFile(`${filePath}/rc4_out_success.xls`);
-  // const output = officeCrypto.encrypt(input, {password: '123456', type: 'rc4'});
-  // await fs.writeFile(`${filePath}/rc4_test_test.xls`, output);
+  const input = await fs.readFile(`./wps-plain.xls`);
+  const output = officeCrypto.encrypt(input, {password: '123456', type: 'rc4'});
+  // await fs.writeFile(`./wps-plain-pass.xls`, output);
 
   // const input = await fs.readFile(`${filePath}/rc4_cryptoapi_pass_test.xls`);
   // const input = await fs.readFile(`${filePath}/test-case-format.xls`);
@@ -47,7 +49,18 @@ const xls97 = require('./src/util/xls97');
 
   // filePath = './tests/data/encrypt';
   // const input = await fs.readFile(`${filePath}/rc4_crypto_api_wait_for_encrypt_test.xls`);
-  const input = await fs.readFile(`${filePath}/rc4_out_success.xls`);
-  const output = officeCrypto.encrypt(input, {password: '123456', type: 'rc4_crypto_api'});
-  await fs.writeFile(`./rc4_crypto_api_pass_out_success.xls`, output);
+  // const input = await fs.readFile(`${filePath}/rc4_out_success.xls`);
+  // const output = officeCrypto.encrypt(input, {password: '123456', type: 'rc4_crypto_api'});
+  // await fs.writeFile(`./rc4_crypto_api_pass_out_success.xls`, output);
+
+  // const input = await fs.readFile(`./wps-plain - 1.xls`);
+  // const input = await fs.readFile(`./wps-plain-pass.xls`);
+  // const cfb = CFB.read(input, {type: 'buffer'});
+  // const Workbook = CFB.find(cfb, 'Workbook');
+  // const workbookContent = Workbook.content;
+  // const bof = workbookContent.read_shift(2);
+
+
+  // const input = await fs.readFile(`./wps-plain - 1.xls`);
+  // const output = await officeCrypto.decrypt(input, {password: '123456'});
 })();
