@@ -71,6 +71,12 @@ describe('Excel isEncrypted', () => {
     expect(isEncrypted).toEqual(true);
   });
 
+  it('Book: The file is encrypted.', async () => {
+    const input = await fs.readFile(`${decryptFilePath}/book_pass_test.xls`);
+    const isEncrypted = officeCrypto.isEncrypted(input);
+    expect(isEncrypted).toEqual(true);
+  });
+
   it('The input is not a buffer.', async () => {
     const test = function test() {
       return function() {
