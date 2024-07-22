@@ -151,7 +151,7 @@ function isEncrypted(input) {
   const cfb = CFB.read(input, {type: 'buffer'});
   const encryptionInfo = CFB.find(cfb, '/EncryptionInfo');
   if (encryptionInfo) return true;
-  const Workbook = CFB.find(cfb, 'Workbook');
+  const Workbook = CFB.find(cfb, 'Workbook') || CFB.find(cfb, 'Book');
   if (Workbook) {
     let blob = Workbook.content;
     if (!Buffer.isBuffer(blob)) {
