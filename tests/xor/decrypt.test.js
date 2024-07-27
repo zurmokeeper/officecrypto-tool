@@ -30,4 +30,11 @@ describe('xor decrypt', () => {
     };
     await expect(test()).rejects.toThrowError(new Error( `The password is incorrect` ));
   });
+
+  it('decrypt biff5(Book Stream) xls success', async () => {
+    const input = await fs.readFile(`${filePath}/xor_pass_test_4_book_stream.xls`);
+    const output = await officeCrypto.decrypt(input, {password: 'Password$456'});
+    await fs.writeFile(`${filePath}/xor_book_stream_out_success.xls`, output);
+    // expect(200).toEqual(200);
+  });
 });

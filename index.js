@@ -64,7 +64,7 @@ async function decrypt(input, options) {
     throw new Error('Unsupported encryption algorithms');
   }
 
-  const Workbook = CFB.find(cfb, 'Workbook');
+  const Workbook = CFB.find(cfb, 'Workbook') || CFB.find(cfb, 'Book');
   if (Workbook) {
     let workbookContent = Workbook.content;
     if (!Buffer.isBuffer(workbookContent)) {

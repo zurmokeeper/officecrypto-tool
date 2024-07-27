@@ -363,6 +363,11 @@ const recordNameNum = {
   'Fbi2': 4200,
 };
 
+const FORMAT = {
+  'BIFF5': 1280,  // 0x0005 -> 1280
+  'BIFF8': 1536   // 0X0006 -> 1536
+}
+
 /**
  * @desc [num, size, record]
  */
@@ -454,6 +459,8 @@ exports.decrypt = function decrypt(currCfb, blob, password, input) {
   if (!Buffer.isBuffer(blob)) blob = Buffer.from(blob);
   const bof = blob.read_shift(2);
   const bofSize = blob.read_shift(2);
+  const vers = blob.read_shift(2);
+  blob.l = blob.l - 2;
   blob.l = blob.l + bofSize; // -> skip BOF record
 
   // FilePass: https://learn.microsoft.com/en-us/openspecs/office_file_formats/ms-xls/cf9ae8d5-4e8c-40a2-95f1-3b31f16b5529?redirectedfrom=MSDN
@@ -471,7 +478,8 @@ exports.decrypt = function decrypt(currCfb, blob, password, input) {
     return input; // Not encrypted returns directly to the original buffer
   }
   const filePassSize = blob.read_shift(2);
-  const wEncryptionType = blob.read_shift(2);
+  let wEncryptionType;
+  wEncryptionType = (vers === FORMAT.BIFF8) ? blob.read_shift(2) : 0; 
 
   const data = {};
 
