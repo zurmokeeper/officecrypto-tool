@@ -364,9 +364,9 @@ const recordNameNum = {
 };
 
 const FORMAT = {
-  'BIFF5': 1280,  // 0x0005 -> 1280
-  'BIFF8': 1536   // 0X0006 -> 1536
-}
+  'BIFF5': 1280, // 0x0005 -> 1280
+  'BIFF8': 1536, // 0X0006 -> 1536
+};
 
 /**
  * @desc [num, size, record]
@@ -478,8 +478,7 @@ exports.decrypt = function decrypt(currCfb, blob, password, input) {
     return input; // Not encrypted returns directly to the original buffer
   }
   const filePassSize = blob.read_shift(2);
-  let wEncryptionType;
-  wEncryptionType = (vers === FORMAT.BIFF8) ? blob.read_shift(2) : 0; 
+  const wEncryptionType = (vers === FORMAT.BIFF8) ? blob.read_shift(2) : 0;
 
   const data = {};
 
