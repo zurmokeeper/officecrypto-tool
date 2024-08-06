@@ -458,6 +458,11 @@ exports.decrypt = function decrypt(currCfb, powerPointBlob, password, input) {
   CFB.utils.cfb_add(output, 'Current User', newCurrentUserBuffer);
   CFB.utils.cfb_add(output, 'PowerPoint Document', powerPointDecBuf);
 
+  const Pictures = CFB.find(currCfb, 'Pictures')
+  if (Pictures) {
+    CFB.utils.cfb_add(output, 'Pictures', Pictures.content);
+  }
+
   const SummaryInformation = CFB.find(currCfb, '\u0005SummaryInformation');
   if (SummaryInformation) {
     CFB.utils.cfb_add(output, '\u0005SummaryInformation', SummaryInformation.content);
