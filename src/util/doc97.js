@@ -305,7 +305,7 @@ function rc4Decrypt(currCfb, wordBlob, password, data, fibBase) {
   }
 
   let output = CFB.utils.cfb_new();
-  CFB.utils.cfb_add(output, 'wordDocument', newWordDocumentBuffer);
+  CFB.utils.cfb_add(output, 'WordDocument', newWordDocumentBuffer);
   CFB.utils.cfb_add(output, tableName, tableDec);
 
   if (DataWorkbook) {

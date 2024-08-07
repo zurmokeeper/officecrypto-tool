@@ -75,7 +75,7 @@ async function decrypt(input, options) {
     return output;
   }
 
-  const WordWorkbook = CFB.find(cfb, 'wordDocument');
+  const WordWorkbook = CFB.find(cfb, 'WordDocument');
   if (WordWorkbook) {
     let wordWorkbookContent = WordWorkbook.content;
     if (!Buffer.isBuffer(wordWorkbookContent)) {
@@ -173,7 +173,7 @@ function isEncrypted(input) {
     }
   }
 
-  const WordDocument = CFB.find(cfb, 'wordDocument');
+  const WordDocument = CFB.find(cfb, 'WordDocument');
   if (WordDocument) {
     let blob = WordDocument.content;
     if (!Buffer.isBuffer(blob)) {
