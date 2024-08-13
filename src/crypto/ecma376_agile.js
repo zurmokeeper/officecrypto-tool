@@ -3,6 +3,7 @@
 const crypto = require('crypto');
 const cfb = require('cfb');
 const xmlUtil = require('../util/xml');
+const zip = require('../util/zip');
 
 
 const ENCRYPTION_INFO_PREFIX = Buffer.from([0x04, 0x00, 0x04, 0x00, 0x40, 0x00, 0x00, 0x00]); // First 4 bytes are the version number, second 4 bytes are reserved.
@@ -72,16 +73,23 @@ const Encryptor = {
     );
 
     // Use the package key to decrypt the package
-    return this.cryptPackage(
-        false,
-        encryptionInfo.package.cipherAlgorithm,
-        encryptionInfo.package.cipherChaining,
-        encryptionInfo.package.hashAlgorithm,
-        encryptionInfo.package.blockSize,
-        encryptionInfo.package.saltValue,
-        packageKey,
-        encryptedPackageBuffer,
+    const outputFileBuffer = this.cryptPackage(
+      false,
+      encryptionInfo.package.cipherAlgorithm,
+      encryptionInfo.package.cipherChaining,
+      encryptionInfo.package.hashAlgorithm,
+      encryptionInfo.package.blockSize,
+      encryptionInfo.package.saltValue,
+      packageKey,
+      encryptedPackageBuffer,
     );
+
+    const isValidZip = zip.isValidZip(outputFileBuffer);
+    if (!isValidZip) {
+      throw new Error('The password is incorrect');
+    }
+
+    return outputFileBuffer;
   },
 
   /**

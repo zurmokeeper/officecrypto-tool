@@ -41,4 +41,13 @@ describe('ecma376_agile decrypt', () => {
       throw error;
     }
   });
+
+  it('agile decrypt fails with wrong password', async () => {
+    try {
+      const input = await fs.readFile(`${filePath}/agile_pass_test.xlsx`);
+      await officeCrypto.decrypt(input, {password: 'wrong_password'});
+    } catch (error) {
+      expect(error.message).toBe('The password is incorrect');
+    }
+  });
 });
