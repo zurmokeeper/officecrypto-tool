@@ -92,6 +92,14 @@ PRs are welcome!
 
 ## Tests
 
+Now that the files referenced by the test use case have been modified to `submodule` dependencies, if you have not downloaded the `submodule` dependencies, execute the following command:
+
+```
+1: git submodule init
+2: git submodule update
+```
+Then check to see if the `test_files` directory is already in the `tests` directory and if all the files in it are there.
+
 With Jest:
 
 ```
