@@ -7,7 +7,7 @@ module.exports = {
     'es6': true,
   },
   'rules': {
-    'linebreak-style': ['error', 'windows'],
+    'linebreak-style': 'off',
     'new-cap': 'off',
     'no-unused-vars': 'warn',
     'camelcase': 'warn',

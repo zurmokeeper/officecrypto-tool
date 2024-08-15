@@ -4,7 +4,7 @@ const fs = require('fs').promises;
 
 const officeCrypto = require('../../index');
 
-const filePath = './tests/data/decrypt';
+const filePath = './tests/test_files/decrypt';
 
 describe('xor decrypt', () => {
   it('decrypt xls success, password length is 6', async () => {

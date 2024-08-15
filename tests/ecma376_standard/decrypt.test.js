@@ -4,7 +4,7 @@ const fs = require('fs').promises;
 
 const officeCrypto = require('../../index');
 
-const filePath = './tests/data/decrypt';
+const filePath = './tests/test_files/decrypt';
 
 describe('ecma376_standard decrypt', () => {
   it('decrypt success', async () => {
@@ -45,5 +45,14 @@ describe('ecma376_standard decrypt', () => {
       };
     };
     await expect(test()).rejects.toThrowError(new Error( `options.password is required` ));
+  });
+
+  it('ecma376_standard decrypt fails with wrong password, The password is incorrect', async () => {
+    try {
+      const input = await fs.readFile(`${filePath}/standard_pass_test.xlsx`);
+      await officeCrypto.decrypt(input, {password: 'wrong_password'});
+    } catch (error) {
+      expect(error.message).toBe('The password is incorrect');
+    }
   });
 });
