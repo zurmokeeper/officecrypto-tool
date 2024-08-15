@@ -95,6 +95,8 @@ PRs are welcome!
 Now that the files referenced by the test use case have been modified to `submodule` dependencies, if you have not downloaded the `submodule` dependencies, execute the following command:
 
 ```
+-> tests/
+
 1: git submodule init
 2: git submodule update
 ```
