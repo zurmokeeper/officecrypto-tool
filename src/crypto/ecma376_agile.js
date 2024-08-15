@@ -3,6 +3,7 @@
 const crypto = require('crypto');
 const cfb = require('cfb');
 const xmlUtil = require('../util/xml');
+const zip = require('../util/zip');
 
 
 const ENCRYPTION_INFO_PREFIX = Buffer.from([0x04, 0x00, 0x04, 0x00, 0x40, 0x00, 0x00, 0x00]); // First 4 bytes are the version number, second 4 bytes are reserved.
@@ -51,6 +52,9 @@ const Encryptor = {
     // Parse the encryption info XML into an object
     const encryptionInfo = await this.parseEncryptionInfo(encryptionInfoBuffer);
 
+    const valid = this.verifyPassword(password, encryptionInfo);
+    if (!valid) throw new Error('The password is incorrect');
+
     // Convert the password into an encryption key
     const key = this.convertPasswordToKey(
         password,
@@ -72,7 +76,7 @@ const Encryptor = {
     );
 
     // Use the package key to decrypt the package
-    return this.cryptPackage(
+    const outputFileBuffer = this.cryptPackage(
         false,
         encryptionInfo.package.cipherAlgorithm,
         encryptionInfo.package.cipherChaining,
@@ -82,6 +86,13 @@ const Encryptor = {
         packageKey,
         encryptedPackageBuffer,
     );
+
+    const isValidZip = zip.isValidZip(outputFileBuffer);
+    if (!isValidZip) {
+      throw new Error('The password is incorrect');
+    }
+
+    return outputFileBuffer;
   },
 
   /**
@@ -109,6 +120,8 @@ const Encryptor = {
       },
       key: {
         encryptedKeyValue: Buffer.from(encryptedKeyNode.encryptedKeyValue, 'base64'),
+        encryptedVerifierHashInput: Buffer.from(encryptedKeyNode.encryptedVerifierHashInput, 'base64'),
+        encryptedVerifierHashValue: Buffer.from(encryptedKeyNode.encryptedVerifierHashValue, 'base64'),
         cipherAlgorithm: encryptedKeyNode.cipherAlgorithm,
         cipherChaining: encryptedKeyNode.cipherChaining,
         saltValue: Buffer.from(encryptedKeyNode.saltValue, 'base64'),
@@ -488,6 +501,47 @@ const Encryptor = {
     const hmac = crypto.createHmac(algorithm, key);
     hmac.update(Buffer.concat(buffers));
     return hmac.digest();
+  },
+
+  verifyPassword(password, encryptionInfo) {
+    const verifierHashInputKey = this.convertPasswordToKey(
+        password,
+        encryptionInfo.key.hashAlgorithm,
+        encryptionInfo.key.saltValue,
+        encryptionInfo.key.spinCount,
+        encryptionInfo.key.keyBits,
+        BLOCK_KEYS.verifierHash.input,
+    );
+
+    const verifierHashValueKey = this.convertPasswordToKey(
+        password,
+        encryptionInfo.key.hashAlgorithm,
+        encryptionInfo.key.saltValue,
+        encryptionInfo.key.spinCount,
+        encryptionInfo.key.keyBits,
+        BLOCK_KEYS.verifierHash.value,
+    );
+
+    const verifierHashInput = this.crypt(
+        false,
+        encryptionInfo.key.cipherAlgorithm,
+        encryptionInfo.key.cipherChaining,
+        verifierHashInputKey,
+        encryptionInfo.key.saltValue,
+        encryptionInfo.key.encryptedVerifierHashInput,
+    );
+
+    const verifierHashValue = this.crypt(
+        false,
+        encryptionInfo.key.cipherAlgorithm,
+        encryptionInfo.key.cipherChaining,
+        verifierHashValueKey,
+        encryptionInfo.key.saltValue,
+        encryptionInfo.key.encryptedVerifierHashValue,
+    );
+
+    const actualHash = this.hash(encryptionInfo.key.hashAlgorithm, verifierHashInput);
+    return actualHash.equals(verifierHashValue);
   },
 };
 module.exports = Encryptor;

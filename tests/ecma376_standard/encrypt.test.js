@@ -4,7 +4,7 @@ const fs = require('fs').promises;
 
 const officeCrypto = require('../../index');
 
-const filePath = './tests/data/encrypt';
+const filePath = './tests/test_files/encrypt';
 
 describe('ecma376_standard encrypt', () => {
   it('encrypt', async () => {

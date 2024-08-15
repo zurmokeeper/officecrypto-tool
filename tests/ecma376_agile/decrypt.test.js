@@ -4,7 +4,7 @@ const fs = require('fs').promises;
 
 const officeCrypto = require('../../index');
 
-const filePath = './tests/data/decrypt';
+const filePath = './tests/test_files/decrypt';
 
 describe('ecma376_agile decrypt', () => {
   it('agile decrypt', async () => {
@@ -39,6 +39,15 @@ describe('ecma376_agile decrypt', () => {
       expect(200).toEqual(200);
     } catch (error) {
       throw error;
+    }
+  });
+
+  it('agile decrypt fails with wrong password, The password is incorrect', async () => {
+    try {
+      const input = await fs.readFile(`${filePath}/agile_pass_test.xlsx`);
+      await officeCrypto.decrypt(input, {password: 'wrong_password'});
+    } catch (error) {
+      expect(error.message).toBe('The password is incorrect');
     }
   });
 });

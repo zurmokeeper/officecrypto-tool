@@ -1,0 +1,3 @@
+[submodule "tests/test_files"]
+	path = tests/test_files
+	url = https://github.com/zurmokeeper/test_files.git

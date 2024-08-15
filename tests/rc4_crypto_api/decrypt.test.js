@@ -4,8 +4,8 @@ const fs = require('fs').promises;
 
 const officeCrypto = require('../../index');
 
-const filePath = './tests/data/decrypt';
-const encryptFilePath = './tests/data/encrypt';
+const filePath = './tests/test_files/decrypt';
+const encryptFilePath = './tests/test_files/encrypt';
 
 describe('rc4_crypto_api decrypt', () => {
   it('decrypt xls success', async () => {
