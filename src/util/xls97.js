@@ -376,12 +376,19 @@ function iterRecord(blob) {
       break;
     }
     blob.l = blob.l - 4; // 重置偏移量
+    const l = blob.l;
     const header = blob.slice(blob.l, blob.l + 4);
     const num = blob.read_shift(2);
     const size = blob.read_shift(2);
     const record = blob.slice(blob.l, blob.l + size);
-    const temp = {header, num, size, record};
-    dataList.push(temp);
+    // const temp = {header, num, size, record};
+    const temp = {header, num, size, record, l};
+    if (num === recordNameNum.Font && dataList.length === 44) {
+      
+    } else {
+      dataList.push(temp);
+    }
+    // dataList.push(temp);
     blob.l = blob.l + size;
   }
   return dataList;
@@ -456,6 +463,8 @@ exports.decrypt = function decrypt(currCfb, blob, password, input) {
   if (!Buffer.isBuffer(blob)) blob = Buffer.from(blob);
   const bof = blob.read_shift(2);
   const bofSize = blob.read_shift(2);
+  const vers = blob.read_shift(2); // 0x0006 -> BIFF8  0x0005 ->BIFF5/7
+  blob.l = blob.l - 2;
   blob.l = blob.l + bofSize; // -> skip BOF record
 
   // FilePass: https://learn.microsoft.com/en-us/openspecs/office_file_formats/ms-xls/cf9ae8d5-4e8c-40a2-95f1-3b31f16b5529?redirectedfrom=MSDN
@@ -905,6 +914,20 @@ function rc4Encrypt(currCfb, blob, password, data) {
   blob.l = 0; // Reset Offset
 
   const dataList = iterRecord(blob);
+
+  // const tempList1 = dataList.map((item)=>{
+  //   const temp = {
+  //     l: item.l,
+  //     num: item.num,
+  //     size: item.size,
+  //     header: item.header.toString('hex'),
+  //     record: item.record.toString('hex'),
+  //   };
+  //   return temp;
+  // });
+  // const fs1 = require('fs').promises;
+  // fs1.writeFile('record-before.json', JSON.stringify(tempList1));
+
   for (const {header, num, size, record} of dataList) {
     if (num === recordNameNum.FilePass) {
       plainBuf.push(...header, ...record);
@@ -927,8 +950,33 @@ function rc4Encrypt(currCfb, blob, password, data) {
       plainBuf.push(...header, ...lbPlyPos, ...Array(restSize).fill(-2));
       buf.push(Buffer.concat([Buffer.alloc(4), Buffer.alloc(4), record.slice(4)]));
     } else {
-      plainBuf.push(...header, ...Array(size).fill(-1));
-      buf.push(Buffer.concat([Buffer.alloc(4), record]));
+      if (num === recordNameNum.XF) {
+        // @link  https://learn.microsoft.com/en-us/openspecs/office_file_formats/ms-xls/b3413c2b-ca5b-4988-86be-ab44bfe9e4d3
+        // const ifnt = Buffer.from(record, 'hex').readInt16LE(0); // ifnt-> FontIndex （2Byte）
+        const ifnt = record.readInt16LE(0);
+        if (ifnt === 23) { // 0x1700 -> 23
+          const newRecord = Buffer.concat([Buffer.alloc(2), record.slice(2, size)]);
+          plainBuf.push(...header, ...Array(size).fill(-1));
+          buf.push(Buffer.concat([Buffer.alloc(4), newRecord]));
+        } else {
+          plainBuf.push(...header, ...Array(size).fill(-1));
+          buf.push(Buffer.concat([Buffer.alloc(4), record]));
+        }
+      } else {
+        if (num === recordNameNum.XFCRC) {
+          let newRecord = Buffer.concat([record.slice(0, 16), Buffer.from('a0c70d78', 'hex')]);
+          newRecord = record;
+          console.log('xxxxxxxx--->', newRecord.toString('hex'));
+
+          plainBuf.push(...header, ...Array(size).fill(-1));
+          buf.push(Buffer.concat([Buffer.alloc(4), newRecord]));
+        } else {
+          plainBuf.push(...header, ...Array(size).fill(-1));
+          buf.push(Buffer.concat([Buffer.alloc(4), record]));
+        }
+      }
+      // plainBuf.push(...header, ...Array(size).fill(-1));
+      // buf.push(Buffer.concat([Buffer.alloc(4), record]));
     }
   }
 
@@ -982,6 +1030,21 @@ function rc4Encrypt(currCfb, blob, password, data) {
 
   // The cfb library writes to a Uint8array in the browser. Convert to a Buffer.
   if (!Buffer.isBuffer(output)) output = Buffer.from(output);
+
+  CFB.utils.prep_blob(enc, 0);
+  const dataList1 = iterRecord(enc);
+  const tempList = dataList1.map((item)=>{
+    const temp = {
+      l: item.l,
+      num: item.num,
+      size: item.size,
+      header: item.header.toString('hex'),
+      record: item.record.toString('hex'),
+    };
+    return temp;
+  });
+  const fs = require('fs').promises;
+  fs.writeFile('record.json', JSON.stringify(tempList));
 
   return output;
 }

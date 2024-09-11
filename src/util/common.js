@@ -116,3 +116,50 @@ function parseEncInfoAgile(blob, length) {
 function parseEncInfoExtensible(blob, length) {
   return {type: 'extensible'};
 }
+
+/**
+ * // 初始化 CRC 缓存
+ * @returns
+ */
+function InitCrcCache() {
+  const Cache = new Array(256).fill(0);
+  for (let Index = 0; Index < 256; ++Index) {
+    let Value = Index;
+    Value = Value << 24;
+
+    for (let Bit = 0; Bit < 8; ++Bit) {
+      if ((Value & 0x80000000) !== 0) {
+        Value = (Value << 1) & 0xFFFFFFFF;
+        // Value = Value ^ 0x04C11DB7; // CRC-32 polynomial
+        // Value = Value ^ 0xEDB88320; // CRC-32 polynomial C#
+        Value = Value ^ 0x1EDC6F41; // x32+x7+x5+x3+x2+x+1
+      } else {
+        Value = (Value << 1) & 0xFFFFFFFF;
+      }
+    }
+    Cache[Index] = Value & 0xFFFF;
+  }
+  return Cache;
+}
+
+/**
+ * CRC 计算函数
+ * @param {*} CrcValue
+ * @param {*} Array
+ * @returns
+ */
+exports.CRC = function CRC(Array) {
+  const Cache = InitCrcCache(); // 初始化 CRC 缓存
+  let CrcValue = 0xFFFFFFFF;
+
+  for (let i = 0; i < Array.length; ++i) {
+    const Byte = Array[i];
+    let Index = CrcValue >>> 24; // 取 CrcValue 的高 8 位
+    Index = Index ^ Byte; // Index 与 Byte 进行异或操作
+
+    CrcValue = (CrcValue << 8) & 0xFFFFFFFF; // CrcValue 左移 8 位
+    CrcValue = CrcValue ^ Cache[Index]; // CrcValue 与 Cache[Index] 进行异或操作
+  }
+
+  return CrcValue >>> 0;
+};
