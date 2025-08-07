@@ -541,7 +541,10 @@ const Encryptor = {
     );
 
     const actualHash = this.hash(encryptionInfo.key.hashAlgorithm, verifierHashInput);
-    return actualHash.equals(verifierHashValue);
+    const paddedActualHash = actualHash.length < verifierHashValue.length
+      ? Buffer.concat([actualHash, Buffer.alloc(verifierHashValue.length - actualHash.length, 0)])
+      : actualHash;
+    return paddedActualHash.equals(verifierHashValue);
   },
 };
 module.exports = Encryptor;
