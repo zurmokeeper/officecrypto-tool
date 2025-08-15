@@ -50,4 +50,26 @@ describe('ecma376_agile decrypt', () => {
       expect(error.message).toBe('The password is incorrect');
     }
   });
+
+  it('agile decrypt, pptx encryptionInfo.key.encryptedVerifierHashValue is a 32-bit buffer.', async () => {
+    try {
+      const input = await fs.readFile(`${filePath}/agile_pass_32_buffer.pptx`);
+      const output = await officeCrypto.decrypt(input, {password: 'infected'});
+      await fs.writeFile(`${filePath}/agile_out_32_success.xlsx`, output);
+      expect(200).toEqual(200);
+    } catch (error) {
+      throw error;
+    }
+  });
+
+  it('agile decrypt, pptx encryptionInfo.key.encryptedVerifierHashValue is a 64-bit buffer.', async () => {
+    try {
+      const input = await fs.readFile(`${filePath}/agile_pass_64_buffer.pptx`);
+      const output = await officeCrypto.decrypt(input, {password: '1234567'});
+      await fs.writeFile(`${filePath}/agile_out_64_success.xlsx`, output);
+      expect(200).toEqual(200);
+    } catch (error) {
+      throw error;
+    }
+  });
 });
